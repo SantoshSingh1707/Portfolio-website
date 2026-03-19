@@ -6,6 +6,7 @@ import {
   Search, Power, LayoutGrid, Download,
   Settings, Image, RefreshCw, FileText
 } from 'lucide-react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import './App.css';
 
 // Pre-defined Wallpapers
@@ -238,6 +239,7 @@ function App() {
 
   return (
     <>
+      <SpeedInsights />
       <div className="desktop-bg" style={{ background: wallpaper }}></div>
       <div className="desktop" onClick={handleClick} onContextMenu={handleContextMenu}>
         

@@ -1,11 +1,24 @@
-import React, { useState, useEffect, useRef } from 'react';
-import Draggable from 'react-draggable';
+import React, { useState, useEffect } from 'react';
 import { 
   User, GraduationCap, FolderDot, 
-  Wrench, Mail, X, Minus, Square, 
-  Search, Power, LayoutGrid, Download,
-  Settings, Image, RefreshCw, FileText
+  Wrench, Mail, Settings, FileText,
+  LayoutGrid, Download, Terminal, Linkedin, Twitter, Instagram, Music, Globe, HardDrive
 } from 'lucide-react';
+import Window from './components/Window';
+import Taskbar from './components/Taskbar';
+import StartMenu from './components/StartMenu';
+import DesktopIcon from './components/DesktopIcon';
+import ContextMenu from './components/ContextMenu';
+import TerminalApp from './components/TerminalApp';
+import LoginScreen from './components/LoginScreen';
+import SettingsApp from './components/SettingsApp';
+import DesktopWidgets from './components/DesktopWidgets';
+import MusicPlayer from './components/MusicPlayer';
+import BrowserApp from './components/BrowserApp';
+import FileExplorer from './components/FileExplorer';
+import DesktopAtmosphere from './components/DesktopAtmosphere';
+import TaskManager from './components/TaskManager';
+import BsodScreen from './components/BsodScreen';
 import './App.css';
 
 // Pre-defined Wallpapers
@@ -14,202 +27,226 @@ const wallpapers = [
   'linear-gradient(135deg, #FF9A9E 0%, #FECFEF 99%, #FECFEF 100%)',
   'linear-gradient(to top, #cfd9df 0%, #e2ebf0 100%)',
   'linear-gradient(120deg, #a1c4fd 0%, #c2e9fb 100%)',
-  'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)'
+  'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+  'url("https://images.unsplash.com/photo-1542831371-29b0f74f9713?q=80&w=1920&auto=format&fit=crop")'
 ];
-
-const Window = ({ title, id, children, onClose, isOpen, isMinimized, onMinimize, zIndex, onFocus, icon: IconComponent, noPadding }) => {
-  const nodeRef = useRef(null);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  
-  if (!isOpen) return null;
-  return (
-    <Draggable 
-      nodeRef={nodeRef} 
-      handle=".window-header" 
-      bounds="parent"
-      onMouseDown={() => onFocus(id)}
-      disabled={isFullscreen}
-    >
-      <div 
-        ref={nodeRef}
-        className={`window open ${isFullscreen ? 'fullscreen' : ''}`} 
-        style={isMinimized ? { display: 'none' } : (!isFullscreen ? { zIndex, top: `${10 + (zIndex - 10) * 2}%`, left: `${15 + (zIndex - 10) * 2}%` } : { zIndex })}
-      >
-        <div className="window-header" onDoubleClick={() => setIsFullscreen(!isFullscreen)}>
-          <span className="window-title">
-            {IconComponent && <IconComponent size={16} color="#0078d7" />}
-            {title}
-          </span>
-          <div className="window-controls" onMouseDown={e => e.stopPropagation()}>
-            <div className="control-btn" onClick={() => onMinimize(id)} title="Minimize"><Minus size={14} /></div>
-            <div className="control-btn" onClick={() => setIsFullscreen(!isFullscreen)} title="Maximize"><Square size={12} /></div>
-            <div className="control-btn close" onClick={() => onClose(id)} title="Close">
-              <X size={16} />
-            </div>
-          </div>
-        </div>
-        <div className="window-content" style={noPadding ? { padding: 0 } : {}} onMouseDown={(e) => { e.stopPropagation(); onFocus(id); }}>
-          {children}
-        </div>
-      </div>
-    </Draggable>
-  );
-};
-
-const Icon = ({ name, icon: IconComponent, onClick }) => (
-  <div className="desktop-icon" onClick={onClick}>
-    <div className="icon-placeholder">
-      <IconComponent size={42} strokeWidth={1.5} />
-    </div>
-    <span>{name}</span>
-  </div>
-);
-
-const Taskbar = ({ openWindows, activeWindow, onTaskbarClick, onToggleStart, isStartOpen }) => {
-  const [time, setTime] = useState(new Date());
-
-  useEffect(() => {
-    const timer = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  return (
-    <div className="taskbar">
-      <div className="taskbar-center">
-        <div className={`start-btn ${isStartOpen ? 'active' : ''}`} onClick={onToggleStart} title="Start">
-          <LayoutGrid size={24} color={isStartOpen ? '#0078d7' : '#00a2ed'} fill={isStartOpen ? '#0078d7' : 'none'} />
-        </div>
-        {Object.keys(openWindows).map(id => (
-          openWindows[id].isOpen && (
-            <div 
-              key={id} 
-              className={`taskbar-item ${activeWindow === id && !openWindows[id].isMinimized ? 'active' : ''}`}
-              onClick={() => onTaskbarClick(id)}
-              title={openWindows[id].title}
-            >
-              {React.createElement(openWindows[id].icon, { size: 22, color: 'white', strokeWidth: 1.5 })}
-            </div>
-          )
-        ))}
-      </div>
-      
-      <div className="taskbar-right">
-        <div className="taskbar-time">
-          <span>{time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-          <span style={{ fontSize: '10px', opacity: 0.8 }}>{time.toLocaleDateString()}</span>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const ContextMenu = ({ x, y, onClose, onRefresh, onSettings }) => {
-  return (
-    <div className="context-menu" style={{ top: y, left: x }}>
-      <div className="context-menu-item" onClick={() => { onRefresh(); onClose(); }}>
-        <RefreshCw size={14} /> Refresh
-      </div>
-      <div style={{ height: '1px', background: 'rgba(0,0,0,0.1)', margin: '4px 0' }}></div>
-      <div className="context-menu-item" onClick={() => { onSettings(); onClose(); }}>
-        <Settings size={14} /> Personalize
-      </div>
-    </div>
-  );
-};
 
 function App() {
   const [booting, setBooting] = useState(true);
+  const [bootLogs, setBootLogs] = useState([]);
+  const [isLocked, setIsLocked] = useState(true);
   const [wallpaper, setWallpaper] = useState(wallpapers[0]);
-  
-  const [windows, setWindows] = useState({
-    about: { title: 'About Me', isOpen: false, isMinimized: false, zIndex: 10, icon: User },
-    education: { title: 'Education', isOpen: false, isMinimized: false, zIndex: 10, icon: GraduationCap },
-    projects: { title: 'Projects', isOpen: false, isMinimized: false, zIndex: 10, icon: FolderDot },
-    skills: { title: 'Skills', isOpen: false, isMinimized: false, zIndex: 10, icon: Wrench },
-    contact: { title: 'Contact', isOpen: false, isMinimized: false, zIndex: 10, icon: Mail },
-    settings: { title: 'Settings', isOpen: false, isMinimized: false, zIndex: 10, icon: Settings },
-    notepad: { title: 'Notepad', isOpen: false, isMinimized: false, zIndex: 10, icon: FileText }
-  });
-  
+  const [notepadText, setNotepadText] = useState("Welcome to my OS Portfolio!\n\nYou can use this notepad to jot down some temporary thoughts while you explore.");
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [accentColor, setAccentColor] = useState('#00a2ed');
+  const [isBsod, setIsBsod] = useState(false);
+  const [windows, setWindows] = useState({});
   const [activeWindow, setActiveWindow] = useState(null);
   const [maxZIndex, setMaxZIndex] = useState(10);
   const [isStartOpen, setIsStartOpen] = useState(false);
-  const [githubProjects, setGithubProjects] = useState([]);
-  const [loadingProjects, setLoadingProjects] = useState(true);
-
   const [contextMenu, setContextMenu] = useState({ isOpen: false, x: 0, y: 0 });
 
-  useEffect(() => {
-    // Fetch GitHub Projects
-    fetch('https://api.github.com/users/SantoshSingh1707/repos?sort=updated&per_page=6')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) setGithubProjects(data);
-        setLoadingProjects(false);
-      })
-      .catch(err => {
-        console.error("Failed fetching github", err);
-        setLoadingProjects(false);
-      });
+  const runBootSequence = (isReboot = false) => {
+    setBooting(true);
+    setBootLogs([]);
+    const logs = isReboot ? [
+      "REBOOTING SYSTEM...",
+      "CLEARING CACHED MEMORY...",
+      "RELOADING KERNEL...",
+      "SYSTEM RESTORED. OK.",
+      "STARTING GUI..."
+    ] : [
+      "SEARCHING FOR BOOT DEVICE...",
+      "DEVICE FOUND: SSD-0: SANTOSH-PORTFOLIO-OS",
+      "LOADING SYSTEM KERNEL...",
+      "VERIFYING CHECKSUMS... OK",
+      "INITIALIZING CORE DRIVERS...",
+      "NETWORK STACK... ONLINE",
+      "GUI SUBSYSTEM... LOADING",
+      "STARTING PORTFOLIO OS v2.0.4..."
+    ];
 
-    setTimeout(() => {
-      setBooting(false);
-    }, 2000);
+    let currentLog = 0;
+    const interval = setInterval(() => {
+      if (currentLog < logs.length) {
+        setBootLogs(prev => [...prev, logs[currentLog]]);
+        currentLog++;
+      } else {
+        clearInterval(interval);
+        setTimeout(() => setBooting(false), 800);
+      }
+    }, 400);
+    return () => clearInterval(interval);
+  };
+
+  const handleRestart = () => {
+    setIsBsod(false);
+    setWindows({});
+    setIsLocked(true);
+    runBootSequence(true);
+  };
+
+  useEffect(() => {
+    return runBootSequence();
   }, []);
 
-  const toggleWindow = (id) => {
-    const isOpening = !windows[id].isOpen;
-    setIsStartOpen(false);
-    
-    setWindows(prev => ({
-      ...prev,
-      [id]: { ...prev[id], isOpen: isOpening, isMinimized: false, zIndex: isOpening ? maxZIndex + 1 : prev[id].zIndex }
-    }));
-    
-    if (isOpening) {
-      setActiveWindow(id);
-      setMaxZIndex(prev => prev + 1);
-    } else if (activeWindow === id) {
-      setActiveWindow(null);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const playSfx = (type) => {
+    const sounds = {
+      click: 'https://www.soundjay.com/buttons/button-16.mp3',
+      error: 'https://www.soundjay.com/buttons/beep-10.mp3',
+      login: 'https://www.soundjay.com/buttons/button-29.mp3',
+      startup: 'https://www.soundjay.com/buttons/button-09.mp3'
+    };
+    if (sounds[type]) {
+      const audio = new Audio(sounds[type]);
+      audio.volume = 0.2;
+      audio.play().catch(() => {}); // ignore autoplay blocks
     }
   };
 
-  const focusWindow = (id) => {
-    if (activeWindow === id && !windows[id].isMinimized) return;
+
+  
+  const [desktopIcons, setDesktopIcons] = useState([
+    { id: 'about', name: 'About Me', icon: User, position: { x: 20, y: 20 } },
+    { id: 'education', name: 'Education', icon: GraduationCap, position: { x: 20, y: 120 } },
+    { id: 'projects', name: 'Projects', icon: FolderDot, position: { x: 20, y: 220 } },
+    { id: 'skills', name: 'Skills', icon: Wrench, position: { x: 20, y: 320 } },
+    { id: 'contact', name: 'Contact', icon: Mail, position: { x: 20, y: 420 } },
+    { id: 'notepad', name: 'Notepad', icon: FileText, position: { x: 120, y: 20 } },
+    { id: 'settings', name: 'Settings', icon: Settings, position: { x: 120, y: 120 } },
+    { id: 'terminal', name: 'Terminal', icon: Terminal, position: { x: 120, y: 220 } },
+    { id: 'music', name: 'Music', icon: Music, position: { x: 120, y: 320 } },
+    { id: 'browser', name: 'Browser', icon: Globe, position: { x: 120, y: 420 } },
+    { id: 'explorer', name: 'File Explorer', icon: HardDrive, position: { x: 220, y: 20 } },
+  ]);
+
+  const updateIconPosition = (id, newPos) => {
+    setDesktopIcons(prev => prev.map(icon => 
+      icon.id === id ? { ...icon, position: newPos } : icon
+    ));
+  };
+
+
+  
+
+
+  const appConfigs = {
+    about: { title: 'About Me', icon: User },
+    education: { title: 'Education', icon: GraduationCap },
+    projects: { title: 'Projects', icon: FolderDot },
+    skills: { title: 'Skills', icon: Wrench },
+    contact: { title: 'Contact', icon: Mail },
+    settings: { title: 'Settings', icon: Settings },
+    notepad: { title: 'Notepad', icon: FileText },
+    terminal: { title: 'Terminal', icon: Terminal },
+    music: { title: 'Music Player', icon: Music },
+    browser: { title: 'Web Browser', icon: Globe },
+    explorer: { title: 'File Explorer', icon: HardDrive },
+    taskmanager: { title: 'Task Manager', icon: LayoutGrid }
+  };
+
+  const openApp = (type) => {
+    playSfx('click');
     setIsStartOpen(false);
-    setActiveWindow(id);
+    
+    // For some apps (like Settings), maybe keep only one instance?
+    // But for now, let's allow multi for everything.
+    const instanceId = `${type}-${Date.now()}`;
+    const z = bringToFront(instanceId);
+    
+    setWindows(prev => ({
+      ...prev,
+      [instanceId]: {
+        ...appConfigs[type],
+        type,
+        isOpen: true,
+        isMinimized: false,
+        isFullscreen: false,
+        snap: 'none',
+        zIndex: z
+      }
+    }));
+    setActiveWindow(instanceId);
+  };
+
+  const closeWindow = (instanceId) => {
+    playSfx('click');
+    setWindows(prev => {
+      const newWindows = { ...prev };
+      delete newWindows[instanceId];
+      return newWindows;
+    });
+    if (activeWindow === instanceId) setActiveWindow(null);
+  };
+
+  const bringToFront = (id) => {
     const newZIndex = maxZIndex + 1;
     setMaxZIndex(newZIndex);
-    setWindows(prev => ({
-      ...prev,
-      [id]: { ...prev[id], isMinimized: false, zIndex: newZIndex }
-    }));
+    return newZIndex;
   };
 
-  const minimizeWindow = (id) => {
-    setWindows(prev => ({
-      ...prev,
-      [id]: { ...prev[id], isMinimized: true }
-    }));
-    if (activeWindow === id) {
-      setActiveWindow(null);
-    }
-  };
-
-  const handleTaskbarClick = (id) => {
-    if (windows[id].isMinimized) {
-      focusWindow(id);
-    } else if (activeWindow === id) {
-      minimizeWindow(id);
+  const toggleWindowMinimize = (instanceId) => {
+    playSfx('click');
+    const isMinimized = !windows[instanceId].isMinimized;
+    
+    if (!isMinimized) {
+      const z = bringToFront(instanceId);
+      setWindows(prev => ({
+        ...prev,
+        [instanceId]: { ...prev[instanceId], isMinimized: false, zIndex: z }
+      }));
+      setActiveWindow(instanceId);
     } else {
-      focusWindow(id);
+      setWindows(prev => ({
+        ...prev,
+        [instanceId]: { ...prev[instanceId], isMinimized: true }
+      }));
+      if (activeWindow === instanceId) setActiveWindow(null);
     }
   };
 
-  const openAppFromStart = (id) => {
-    if (!windows[id].isOpen || windows[id].isMinimized) toggleWindow(id);
-    else focusWindow(id);
+  const focusWindow = (instanceId) => {
+    if (windows[instanceId].isMinimized) {
+      toggleWindowMinimize(instanceId);
+      return;
+    }
+    if (activeWindow === instanceId) return;
     setIsStartOpen(false);
+    setActiveWindow(instanceId);
+    const z = bringToFront(instanceId);
+    setWindows(prev => ({
+      ...prev,
+      [instanceId]: { ...prev[instanceId], zIndex: z }
+    }));
+  };
+
+  const minimizeWindow = (instanceId) => {
+    setWindows(prev => ({
+      ...prev,
+      [instanceId]: { ...prev[instanceId], isMinimized: true }
+    }));
+    if (activeWindow === instanceId) setActiveWindow(null);
+  };
+
+  const toggleFullscreen = (instanceId) => {
+    setWindows(prev => ({
+      ...prev,
+      [instanceId]: { ...prev[instanceId], isFullscreen: !prev[instanceId].isFullscreen, snap: 'none' }
+    }));
+    focusWindow(instanceId);
+  };
+
+  const setWindowSnap = (instanceId, snap) => {
+    setWindows(prev => ({
+      ...prev,
+      [instanceId]: { ...prev[instanceId], snap, isFullscreen: false }
+    }));
   };
 
   const handleContextMenu = (e) => {
@@ -223,221 +260,244 @@ function App() {
     if (isStartOpen) setIsStartOpen(false);
   };
 
+  const handleSortIcons = () => {
+    playSfx('click');
+    setDesktopIcons(prev => [...prev].sort((a, b) => a.name.localeCompare(b.name)));
+  };
+
   if (booting) {
     return (
-      <div className="boot-screen">
-        <div className="windows-logo-boot">
-          <div></div><div></div>
-          <div></div><div></div>
+      <div className="bios-screen">
+        <div className="bios-header">
+          <div className="bios-logo">AMI</div>
+          <div className="bios-info">
+            <p>American Megatrends (C) 2026</p>
+            <p>Santosh Portfolio OS Release 2.0.4</p>
+          </div>
         </div>
-        <div className="win-spinner"><span></span></div>
+        <div className="bios-logs">
+          {bootLogs.map((log, i) => (
+            <div key={i} className="bios-log-line">{'>'} {log}</div>
+          ))}
+          <div className="bios-cursor"></div>
+        </div>
       </div>
     );
   }
 
+  if (isLocked) {
+    return (
+      <>
+        <div 
+          className="desktop-bg" 
+          style={{ background: wallpaper, backgroundSize: 'cover', backgroundPosition: 'center', filter: 'blur(20px)', transform: 'scale(1.1)' }}
+        ></div>
+        <LoginScreen onLogin={() => { setIsLocked(false); openApp('about'); }} playSfx={playSfx} />
+      </>
+    );
+  }
+
+  const getWindowProps = (instanceId) => ({
+    id: instanceId,
+    title: windows[instanceId].title,
+    icon: windows[instanceId].icon,
+    isOpen: windows[instanceId].isOpen,
+    isMinimized: windows[instanceId].isMinimized,
+    isFullscreen: windows[instanceId].isFullscreen,
+    snap: windows[instanceId].snap,
+    zIndex: windows[instanceId].zIndex,
+    onClose: () => closeWindow(instanceId),
+    onMinimize: () => minimizeWindow(instanceId),
+    onFocus: () => focusWindow(instanceId),
+    onToggleFullscreen: () => toggleFullscreen(instanceId),
+    onSnap: (snap) => setWindowSnap(instanceId, snap)
+  });
+
   return (
-    <>
-      <div className="desktop-bg" style={{ background: wallpaper }}></div>
+    <div style={{ '--accent-color': accentColor }}>
+      <div 
+        className="desktop-bg" 
+        style={{ background: wallpaper, backgroundSize: 'cover', backgroundPosition: 'center' }}
+      ></div>
       <div className="desktop" onClick={handleClick} onContextMenu={handleContextMenu}>
-        
-        {/* Desktop Icons */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '10px' }}>
-          <Icon name="About Me" icon={User} onClick={() => toggleWindow('about')} />
-          <Icon name="Education" icon={GraduationCap} onClick={() => toggleWindow('education')} />
-          <Icon name="Projects" icon={FolderDot} onClick={() => toggleWindow('projects')} />
-          <Icon name="Skills" icon={Wrench} onClick={() => toggleWindow('skills')} />
-          <Icon name="Contact" icon={Mail} onClick={() => toggleWindow('contact')} />
-          <Icon name="Notepad" icon={FileText} onClick={() => toggleWindow('notepad')} />
-          <Icon name="Settings" icon={Settings} onClick={() => toggleWindow('settings')} />
+        <DesktopAtmosphere />
+        <div className="desktop-icons-container">
+          {desktopIcons.map((icon) => (
+            <DesktopIcon 
+              key={icon.id}
+              id={icon.id}
+              name={icon.name}
+              icon={icon.icon}
+              position={icon.position}
+              disabled={isMobile}
+              onDragStop={(newPos) => updateIconPosition(icon.id, newPos)}
+              onDoubleClick={() => openApp(icon.id)}
+            />
+          ))}
         </div>
 
-        {/* Windows */}
-        <Window title="About Me" id="about" isOpen={windows.about.isOpen} isMinimized={windows.about.isMinimized} zIndex={windows.about.zIndex} onClose={toggleWindow} onMinimize={minimizeWindow} onFocus={focusWindow} icon={User}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '20px' }}>
-            <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'linear-gradient(135deg, #0078d7, #00a2ed)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', fontSize: '36px', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(0, 120, 215, 0.4)' }}>
-              SS
-            </div>
-            <div>
-              <h2 style={{ color: '#0078d7', fontSize: '28px', marginBottom: '4px' }}>Santosh Singh</h2>
-              <p style={{ fontSize: '15px', color: '#555', fontWeight: '500' }}>Software Engineering Student | AI Enthusiast</p>
-            </div>
-          </div>
-          <p style={{ fontSize: '15px', lineHeight: '1.7', marginBottom: '25px', color: '#333' }}>
-            I am a passionate computer science student at Dehradun Institute of Technology. 
-            Driven by the potential of AI and machine learning, I love exploring cutting-edge 
-            technologies, building impactful applications, and solving complex real-world problems.
-          </p>
-        </Window>
+        <DesktopWidgets />
 
-        <Window title="Education" id="education" isOpen={windows.education.isOpen} isMinimized={windows.education.isMinimized} zIndex={windows.education.zIndex} onClose={toggleWindow} onMinimize={minimizeWindow} onFocus={focusWindow} icon={GraduationCap}>
-          <div style={{ background: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: '1px solid #eee' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
-              <div>
-                <h3 style={{ color: '#0078d7', fontSize: '22px', marginBottom: '5px' }}>Dehradun Institute of Technology</h3>
-                <p style={{ fontSize: '16px', fontWeight: '500', color: '#333' }}>Bachelor of Engineering in Computer Science</p>
-                <p style={{ fontSize: '14px', color: '#666', marginTop: '4px' }}>Minor: Animation</p>
+        {Object.entries(windows).map(([instanceId, win]) => (
+          <Window key={instanceId} {...getWindowProps(instanceId)}>
+            {win.type === 'about' && (
+              <div className="about-content">
+                <div className="about-header">
+                  <div className="avatar-circle">SS</div>
+                  <div>
+                    <h2 className="title-text">Aithani Santosh Singh</h2>
+                    <p className="subtitle-text">Software Engineering Student | AI Enthusiast</p>
+                  </div>
+                </div>
+                <div className="body-text">
+                  <p style={{ marginBottom: '15px' }}>
+                    I am a passionate computer science student at Dehradun Institute of Technology. 
+                    Driven by the potential of AI and machine learning, I explore cutting-edge 
+                    technologies, build impactful applications, and solve complex problems.
+                  </p>
+                  <p>
+                    I regularly work on open-source projects including <strong>Machine Learning</strong>, 
+                    <strong> Anime Character sites</strong>, and practicing <strong>Data Structures & Algorithms in C/Java</strong>. 
+                    Check out my GitHub <code>SantoshSingh1707</code> to follow my journey!
+                  </p>
+                </div>
               </div>
-              <div style={{ background: '#f0f4f8', padding: '6px 14px', borderRadius: '20px', fontWeight: '600', color: '#0078d7', fontSize: '13px' }}>
-                Expected May 2027
+            )}
+            {win.type === 'education' && (
+              <div className="glass-card">
+                <div className="flex-between">
+                  <div>
+                    <h3 className="card-title">Dehradun Institute of Technology</h3>
+                    <p className="card-subtitle">Bachelor of Engineering in Computer Science</p>
+                    <p className="card-detail">Minor: Animation</p>
+                  </div>
+                  <div className="badge">Expected May 2027</div>
+                </div>
+                <h4 className="section-title">Relevant Coursework</h4>
+                <div className="flex-wrap">
+                  {['Data Structures', 'Algorithms', 'Operating Systems', 'Software Engineering', 'Artificial Intelligence', 'Data Analysis'].map(course => (
+                    <span key={course} className="skill-tag">{course}</span>
+                  ))}
+                </div>
               </div>
-            </div>
-            <h4 style={{ marginTop: '25px', marginBottom: '15px', color: '#222' }}>Relevant Coursework</h4>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-              {['Data Structures', 'Algorithms', 'Operating Systems', 'Software Engineering', 'Artificial Intelligence', 'Data Analysis'].map(course => <span key={course} className="skill-tag">{course}</span>)}
-            </div>
-          </div>
-        </Window>
-
-        <Window title="Projects (GitHub)" id="projects" isOpen={windows.projects.isOpen} isMinimized={windows.projects.isMinimized} zIndex={windows.projects.zIndex} onClose={toggleWindow} onMinimize={minimizeWindow} onFocus={focusWindow} icon={FolderDot}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-            {loadingProjects ? (
-               <div style={{ gridColumn: 'span 2', textAlign: 'center', padding: '40px', color: '#666' }}>
-                  <div className="spinner" style={{ borderColor: 'rgba(0,120,215,0.2)', borderLeftColor: '#0078d7', margin: '0 auto 15px auto', width: '30px', height: '30px', borderWidth: '3px' }}></div>
-                  <p>Fetching repositories from GitHub...</p>
-               </div>
-            ) : githubProjects.map(repo => (
-              <div key={repo.id} className="project-card" style={{ background: 'white', padding: '20px', borderRadius: '10px', borderTop: '4px solid #0078d7', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column' }}>
-                <h3 style={{ fontSize: '17px', color: '#222', marginBottom: '8px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={repo.name}>
-                  {repo.name}
-                </h3>
-                <p style={{ color: '#555', fontSize: '13px', marginBottom: '15px', height: '40px', overflow: 'hidden' }}>
-                  {repo.description || "No description provided for this repository."}
-                </p>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
-                  <span style={{ fontSize: '11px', background: '#f0f4f8', color: '#444', padding: '4px 8px', borderRadius: '4px', fontWeight: '600' }}>
-                    {repo.language || 'Code'}
-                  </span>
-                  <a href={repo.html_url} target="_blank" rel="noreferrer" className="resume-btn" style={{ background: '#24292e', padding: '6px 12px', fontSize: '12px', gap: '6px' }}>
-                    GitHub
+            )}
+            {win.type === 'projects' && (
+              <div className="grid-2" style={{ padding: '10px' }}>
+                <div className="glass-card accent-left" style={{ padding: '20px' }}>
+                  <h3 className="card-title-dark" style={{ fontSize: '20px' }}>AI Study Tool</h3>
+                  <p className="card-subtitle-accent" style={{ margin: '4px 0 10px 0' }}>RAG Quiz Platform</p>
+                  <ul className="project-list" style={{ marginBottom: '15px', paddingLeft: '15px', fontSize: '14px' }}>
+                    <li>Built with LangChain, Mistral AI, & ChromaDB.</li>
+                    <li>Generates quizzes from PDFs/DOCX using GenAI.</li>
+                  </ul>
+                  <a href="https://github.com/SantoshSingh1707/AI-Study-Tool" target="_blank" rel="noreferrer" className="resume-btn warning-bg" style={{ padding: '8px 16px', fontSize: '13px' }}>
+                    Source Code
+                  </a>
+                </div>
+                {/* ... other projects ... */}
+                <div className="glass-card" style={{ padding: '20px', borderLeft: '6px solid #00a2ed' }}>
+                  <h3 className="card-title-dark" style={{ fontSize: '20px' }}>Kidney Disease Classifier</h3>
+                  <p className="card-subtitle-accent" style={{ margin: '4px 0 10px 0', color: '#00a2ed' }}>End-to-End ML Pipeline</p>
+                  <ul className="project-list" style={{ marginBottom: '15px', paddingLeft: '15px', fontSize: '14px' }}>
+                    <li>DVC, MLflow tracking, & CI/CD integration.</li>
+                    <li>Production-grade classification system.</li>
+                  </ul>
+                </div>
+              </div>
+            )}
+            {win.type === 'skills' && (
+              <div className="grid-2">
+                <section className="glass-card">
+                  <h4 className="skill-section-title success-text">
+                    <LayoutGrid size={18} /> Languages
+                  </h4>
+                  <div className="flex-wrap">
+                    {['Java', 'Python', 'JavaScript'].map(s => <span key={s} className="skill-tag success-tag">{s}</span>)}
+                  </div>
+                </section>
+                <section className="glass-card">
+                  <h4 className="skill-section-title primary-text">
+                    <Wrench size={18} /> AI & ML
+                  </h4>
+                  <div className="flex-wrap">
+                    {['TensorFlow', 'Keras', 'Scikit-learn', 'OpenCV'].map(s => <span key={s} className="skill-tag">{s}</span>)}
+                  </div>
+                </section>
+              </div>
+            )}
+            {win.type === 'contact' && (
+              <div className="center-content">
+                <h2 className="title-text-dark">Let's Connect!</h2>
+                <div className="contact-card-container">
+                  <a href="mailto:santosh102969@gmail.com" className="contact-card">
+                    <Mail size={20} color="#ea4335" /> santosh102969@gmail.com
+                  </a>
+                  <a href="https://github.com/SantoshSingh1707" target="_blank" rel="noreferrer" className="contact-card">
+                    <FolderDot size={20} color="#333" /> GitHub
                   </a>
                 </div>
               </div>
-            ))}
-          </div>
-        </Window>
-
-        <Window title="Skills" id="skills" isOpen={windows.skills.isOpen} isMinimized={windows.skills.isMinimized} zIndex={windows.skills.zIndex} onClose={toggleWindow} onMinimize={minimizeWindow} onFocus={focusWindow} icon={Wrench}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px' }}>
-             <section style={{ background: 'white', padding: '20px', borderRadius: '12px', border: '1px solid #eee' }}>
-                <h4 style={{ color: '#107c10', marginBottom: '15px', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <LayoutGrid size={18} /> Languages
-                </h4>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  {['Java', 'Python', 'JavaScript'].map(s => <span key={s} className="skill-tag" style={{ color: '#107c10', borderColor: 'rgba(16, 124, 16, 0.2)', backgroundColor: '#f3fbf3' }}>{s}</span>)}
-                </div>
-              </section>
-              <section style={{ background: 'white', padding: '20px', borderRadius: '12px', border: '1px solid #eee' }}>
-                <h4 style={{ color: '#0078d7', marginBottom: '15px', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Wrench size={18} /> AI & ML
-                </h4>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  {['TensorFlow', 'Keras', 'Scikit-learn', 'OpenCV'].map(s => <span key={s} className="skill-tag">{s}</span>)}
-                </div>
-              </section>
-          </div>
-        </Window>
-
-        <Window title="Contact" id="contact" isOpen={windows.contact.isOpen} isMinimized={windows.contact.isMinimized} zIndex={windows.contact.zIndex} onClose={toggleWindow} onMinimize={minimizeWindow} onFocus={focusWindow} icon={Mail}>
-          <div style={{ textAlign: 'center', padding: '10px' }}>
-             <h2 style={{ fontSize: '24px', color: '#222', marginBottom: '10px' }}>Let's Connect!</h2>
-             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', maxWidth: '350px', margin: '20px auto' }}>
-                <a href="mailto:santosh102969@gmail.com" className="contact-card" style={{ display: 'flex', padding: 15, background: 'white', borderRadius: 8, textDecoration: 'none', color: '#333', border: '1px solid #eee' }}>
-                  <Mail size={20} color="#ea4335" style={{ marginRight: 15 }} /> santosh102969@gmail.com
-                </a>
-                <a href="https://github.com/SantoshSingh1707" target="_blank" rel="noreferrer" className="contact-card" style={{ display: 'flex', padding: 15, background: 'white', borderRadius: 8, textDecoration: 'none', color: '#333', border: '1px solid #eee' }}>
-                  <FolderDot size={20} color="#333" style={{ marginRight: 15 }} /> SantoshSingh1707
-                </a>
-             </div>
-             <a href="/Resume.pdf" download className="resume-btn" style={{ background: '#00cc6a', marginTop: 20 }}>
-                <Download size={18} /> Download Full Resume
-             </a>
-          </div>
-        </Window>
-
-        <Window title="Settings" id="settings" isOpen={windows.settings.isOpen} isMinimized={windows.settings.isMinimized} zIndex={windows.settings.zIndex} onClose={toggleWindow} onMinimize={minimizeWindow} onFocus={focusWindow} icon={Settings}>
-          <h2 style={{ fontSize: '20px', color: '#333', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Image size={24} color="#0078d7" /> Personalization
-          </h2>
-          <p style={{ marginBottom: '15px', color: '#555' }}>Choose your background:</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
-            {wallpapers.map((bg, index) => (
-              <div 
-                key={index} 
-                onClick={() => setWallpaper(bg)}
-                style={{ 
-                  height: '80px', 
-                  background: bg, 
-                  borderRadius: '8px', 
-                  cursor: 'pointer',
-                  border: wallpaper === bg ? '3px solid #0078d7' : '1px solid #ddd',
-                  boxShadow: wallpaper === bg ? '0 0 10px rgba(0,120,215,0.4)' : 'none'
-                }} 
+            )}
+            {win.type === 'settings' && (
+              <SettingsApp 
+                currentWallpaper={wallpaper} 
+                setWallpaper={setWallpaper} 
+                wallpapers={wallpapers} 
+                accentColor={accentColor}
+                setAccentColor={setAccentColor}
               />
-            ))}
-          </div>
-        </Window>
+            )}
+            {win.type === 'notepad' && (
+              <div className="notepad-container">
+                <textarea 
+                  value={notepadText}
+                  onChange={(e) => setNotepadText(e.target.value)}
+                  className="notepad-textarea"
+                />
+              </div>
+            )}
+            {win.type === 'terminal' && <TerminalApp />}
+            {win.type === 'music' && <MusicPlayer />}
+            {win.type === 'browser' && <BrowserApp />}
+            {win.type === 'explorer' && <FileExplorer />}
+            {win.type === 'taskmanager' && (
+              <TaskManager 
+                windows={windows} 
+                onClose={closeWindow} 
+                onFocus={focusWindow} 
+                onBsod={() => setIsBsod(true)} 
+              />
+            )}
+          </Window>
+        ))}
 
-        <Window title="Notepad" id="notepad" isOpen={windows.notepad.isOpen} isMinimized={windows.notepad.isMinimized} zIndex={windows.notepad.zIndex} onClose={toggleWindow} onMinimize={minimizeWindow} onFocus={focusWindow} icon={FileText} noPadding>
-          <div className="notepad" style={{ height: '100%', width: '100%', padding: '15px', background: 'white' }}>
-            <textarea 
-              defaultValue={"Welcome to my OS Portfolio!\n\nYou can use this notepad to jot down some temporary thoughts while you explore."} 
-              spellCheck="false"
-            />
-          </div>
-        </Window>
-
+        {/* Start Menu, Context Menu, Taskbar */}
         {contextMenu.isOpen && (
           <ContextMenu 
-            x={contextMenu.x} 
-            y={contextMenu.y} 
+            x={contextMenu.x} y={contextMenu.y} 
             onClose={() => setContextMenu({ ...contextMenu, isOpen: false })} 
             onRefresh={() => window.location.reload()}
-            onSettings={() => { if (!windows.settings.isOpen) toggleWindow('settings'); else focusWindow('settings'); }}
+            onSort={handleSortIcons}
+            onSettings={() => openApp('settings')}
           />
         )}
 
         {isStartOpen && (
-          <div className="start-menu" onClick={(e) => e.stopPropagation()}>
-            <div className="search-bar">
-              <Search size={18} color="#666" />
-              <input type="text" placeholder="Type here to search" />
-            </div>
-            <div>
-              <h4 style={{ fontSize: '14px', marginBottom: '15px', color: '#333' }}>Pinned Apps</h4>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', textAlign: 'center' }}>
-                {Object.keys(windows).map(id => (
-                  <div 
-                    key={id} 
-                    onClick={() => openAppFromStart(id)}
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
-                  >
-                    <div style={{ width: '48px', height: '48px', borderRadius: '8px', background: 'white', display: 'flex', justifyContent: 'center', alignItems: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-                      {React.createElement(windows[id].icon, { size: 24, color: '#0078d7' })}
-                    </div>
-                    <span style={{ fontSize: '12px', color: '#333' }}>{windows[id].title}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 0', borderTop: '1px solid #ddd' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#0078d7', color: 'white', display: 'flex', justifyContent: 'center', alignItems: 'center', fontWeight: 'bold' }}>S</div>
-                <span style={{ fontSize: '13px', fontWeight: '600', color: '#333' }}>Santosh Singh</span>
-              </div>
-              <Power size={20} color="#666" style={{ cursor: 'pointer' }} onClick={() => alert('Shutting down...')} />
-            </div>
-          </div>
+          <StartMenu windows={windows} onOpenApp={openApp} focusWindow={focusWindow} />
         )}
 
         <Taskbar 
           openWindows={windows} 
           activeWindow={activeWindow} 
-          onTaskbarClick={handleTaskbarClick}
+          onFocus={focusWindow}
+          onOpenApp={openApp}
           onToggleStart={(e) => { e.stopPropagation(); setIsStartOpen(!isStartOpen); setContextMenu({ ...contextMenu, isOpen: false }); }}
           isStartOpen={isStartOpen}
         />
+        
+        {isBsod && <BsodScreen onRestart={handleRestart} />}
       </div>
-    </>
+    </div>
   );
 }
 

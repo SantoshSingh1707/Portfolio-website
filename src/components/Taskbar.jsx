@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutGrid } from 'lucide-react';
+import { LayoutGrid, Wifi, BatteryMedium, Volume2, ChevronUp } from 'lucide-react';
 
 const Taskbar = ({ openWindows, activeWindow, onFocus, onToggleStart, isStartOpen }) => {
   const [time, setTime] = useState(new Date());
@@ -32,6 +32,12 @@ const Taskbar = ({ openWindows, activeWindow, onFocus, onToggleStart, isStartOpe
       </div>
       
       <div className="taskbar-right">
+        <div className="system-tray" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '10px' }}>
+          <ChevronUp size={16} style={{ cursor: 'pointer', opacity: 0.8 }} />
+          <Wifi size={16} style={{ cursor: 'pointer', opacity: 0.8 }} />
+          <Volume2 size={16} style={{ cursor: 'pointer', opacity: 0.8 }} />
+          <BatteryMedium size={16} style={{ cursor: 'pointer', opacity: 0.8 }} />
+        </div>
         <div className="taskbar-time">
           <span>{time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
           <span style={{ fontSize: '10px', opacity: 0.8 }}>{time.toLocaleDateString()}</span>

@@ -154,7 +154,6 @@ function App() {
 
     setTimeout(() => {
       setBooting(false);
-      toggleWindow('about'); 
     }, 2000);
   }, []);
 

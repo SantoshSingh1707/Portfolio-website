@@ -1,0 +1,36 @@
+.taskbar-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.taskbar-item.active {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.start-btn {
+  transition: transform 0.2s;
+}
+
+.start-btn:active {
+  transform: scale(0.9);
+}
+
+a {
+  color: #0078d7;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+h2, h3, h4 {
+  font-weight: 600;
+}
+
+ul {
+  list-style-type: none;
+}
+
+li {
+  margin-bottom: 5px;
+}

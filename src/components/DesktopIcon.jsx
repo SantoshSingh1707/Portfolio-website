@@ -1,12 +1,31 @@
 import React, { useRef } from 'react';
 import Draggable from 'react-draggable';
 
-const DesktopIcon = ({ id, name, icon: IconComponent, position, onDragStop, onDoubleClick, disabled }) => {
+const DesktopIcon = ({ name, icon, position, onDragStop, onDoubleClick, onActivate, disabled }) => {
   const nodeRef = useRef(null);
 
   const handleStop = (e, data) => {
     onDragStop({ x: data.x, y: data.y });
   };
+
+  const iconMarkup = (
+    <>
+      <div className="desktop-icon-shell" style={{ pointerEvents: 'none' }}>
+        <div className="icon-placeholder">
+          {icon ? React.createElement(icon, { size: 42, strokeWidth: 1.5 }) : null}
+        </div>
+      </div>
+      <span className="desktop-icon-label" style={{ pointerEvents: 'none' }}>{name}</span>
+    </>
+  );
+
+  if (disabled) {
+    return (
+      <div ref={nodeRef} className="desktop-icon mobile-icon" onClick={onActivate}>
+        {iconMarkup}
+      </div>
+    );
+  }
 
   return (
     <Draggable 
@@ -14,18 +33,14 @@ const DesktopIcon = ({ id, name, icon: IconComponent, position, onDragStop, onDo
       onStop={handleStop}
       defaultPosition={position}
       bounds="parent"
-      disabled={disabled}
-      position={disabled ? { x: 0, y: 0 } : undefined}
+      disabled={false}
     >
       <div 
         ref={nodeRef} 
         className="desktop-icon" 
         onDoubleClick={onDoubleClick}
       >
-        <div className="icon-placeholder" style={{ pointerEvents: 'none' }}>
-          <IconComponent size={42} strokeWidth={1.5} />
-        </div>
-        <span style={{ pointerEvents: 'none' }}>{name}</span>
+        {iconMarkup}
       </div>
     </Draggable>
   );

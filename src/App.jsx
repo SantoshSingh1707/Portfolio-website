@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   User, GraduationCap, FolderDot, 
   Wrench, Mail, Settings, FileText,
-  LayoutGrid, Download, Terminal, Linkedin, Twitter, Instagram, Music, Globe, HardDrive
+  LayoutGrid, Download, Terminal, Music, Globe, HardDrive
 } from 'lucide-react';
 import Window from './components/Window';
 import Taskbar from './components/Taskbar';
@@ -19,32 +19,126 @@ import FileExplorer from './components/FileExplorer';
 import DesktopAtmosphere from './components/DesktopAtmosphere';
 import TaskManager from './components/TaskManager';
 import BsodScreen from './components/BsodScreen';
+import SystemModal from './components/SystemModal';
+import SystemToastStack from './components/SystemToastStack';
+import ResumeApp from './components/ResumeApp';
+import ProjectsApp from './components/ProjectsApp';
 import './App.css';
 
 // Pre-defined Wallpapers
 const wallpapers = [
-  'radial-gradient(circle at 15% 50%, rgba(0, 102, 204, 0.4), transparent 25%), radial-gradient(circle at 85% 30%, rgba(0, 204, 255, 0.4), transparent 25%), radial-gradient(circle at 50% 80%, rgba(102, 0, 204, 0.4), transparent 25%), linear-gradient(135deg, #0f2027, #203a43, #2c5364)',
-  'linear-gradient(135deg, #FF9A9E 0%, #FECFEF 99%, #FECFEF 100%)',
-  'linear-gradient(to top, #cfd9df 0%, #e2ebf0 100%)',
-  'linear-gradient(120deg, #a1c4fd 0%, #c2e9fb 100%)',
-  'linear-gradient(to right, #4facfe 0%, #00f2fe 100%)',
+  'radial-gradient(circle at 12% 18%, rgba(102, 210, 255, 0.28), transparent 24%), radial-gradient(circle at 82% 16%, rgba(0, 132, 255, 0.22), transparent 22%), radial-gradient(circle at 52% 82%, rgba(255, 191, 102, 0.18), transparent 26%), linear-gradient(135deg, #07111f 0%, #123454 48%, #214a5f 100%)',
+  'linear-gradient(135deg, #ffd2a8 0%, #fef1dd 48%, #d1e8ff 100%)',
+  'linear-gradient(160deg, #d9e7f6 0%, #f7fbff 45%, #cdd9ec 100%)',
+  'linear-gradient(120deg, #a7d8ff 0%, #e5f6ff 54%, #d1f2e7 100%)',
+  'linear-gradient(135deg, #184e77 0%, #1e6091 35%, #76c893 100%)',
   'url("https://images.unsplash.com/photo-1542831371-29b0f74f9713?q=80&w=1920&auto=format&fit=crop")'
 ];
+
+const getWallpaperStyle = (wallpaper, extra = {}) => {
+  if (wallpaper.startsWith('url(')) {
+    return {
+      ...extra,
+      backgroundImage: wallpaper,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+    };
+  }
+
+  return {
+    ...extra,
+    background: wallpaper,
+  };
+};
+
+const STORAGE_KEYS = {
+  wallpaper: 'portfolio-os.wallpaper',
+  accentColor: 'portfolio-os.accent-color',
+  notepadText: 'portfolio-os.notepad-text',
+  desktopIcons: 'portfolio-os.desktop-icons',
+};
+
+const readStoredString = (key, fallback) => {
+  try {
+    return window.localStorage.getItem(key) || fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const readStoredJson = (key, fallback) => {
+  try {
+    const storedValue = window.localStorage.getItem(key);
+    return storedValue ? JSON.parse(storedValue) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const defaultDesktopIcons = [
+  { id: 'about', name: 'About Me', icon: User, position: { x: 20, y: 20 } },
+  { id: 'education', name: 'Education', icon: GraduationCap, position: { x: 20, y: 120 } },
+  { id: 'projects', name: 'Projects', icon: FolderDot, position: { x: 20, y: 220 } },
+  { id: 'skills', name: 'Skills', icon: Wrench, position: { x: 20, y: 320 } },
+  { id: 'contact', name: 'Contact', icon: Mail, position: { x: 20, y: 420 } },
+  { id: 'notepad', name: 'Notepad', icon: FileText, position: { x: 120, y: 20 } },
+  { id: 'resume', name: 'Resume', icon: FileText, position: { x: 120, y: 120 } },
+  { id: 'settings', name: 'Settings', icon: Settings, position: { x: 220, y: 120 } },
+  { id: 'terminal', name: 'Terminal', icon: Terminal, position: { x: 120, y: 220 } },
+  { id: 'music', name: 'Music', icon: Music, position: { x: 120, y: 320 } },
+  { id: 'browser', name: 'Browser', icon: Globe, position: { x: 120, y: 420 } },
+  { id: 'explorer', name: 'File Explorer', icon: HardDrive, position: { x: 220, y: 20 } },
+];
+
+const desktopIconMap = Object.fromEntries(defaultDesktopIcons.map((icon) => [icon.id, icon]));
+
+const hydrateDesktopIcons = (storedIcons) => {
+  if (!Array.isArray(storedIcons)) {
+    return defaultDesktopIcons;
+  }
+
+  const restoredIcons = storedIcons
+    .map((item) => {
+      const baseIcon = desktopIconMap[item.id];
+
+      if (!baseIcon) {
+        return null;
+      }
+
+      return {
+        ...baseIcon,
+        position: item.position || baseIcon.position,
+      };
+    })
+    .filter(Boolean);
+
+  const missingIcons = defaultDesktopIcons.filter(
+    (icon) => !restoredIcons.some((restoredIcon) => restoredIcon.id === icon.id),
+  );
+
+  return [...restoredIcons, ...missingIcons];
+};
 
 function App() {
   const [booting, setBooting] = useState(true);
   const [bootLogs, setBootLogs] = useState([]);
   const [isLocked, setIsLocked] = useState(true);
-  const [wallpaper, setWallpaper] = useState(wallpapers[0]);
-  const [notepadText, setNotepadText] = useState("Welcome to my OS Portfolio!\n\nYou can use this notepad to jot down some temporary thoughts while you explore.");
+  const [wallpaper, setWallpaper] = useState(() => readStoredString(STORAGE_KEYS.wallpaper, wallpapers[0]));
+  const [notepadText, setNotepadText] = useState(() => readStoredString(
+    STORAGE_KEYS.notepadText,
+    "Welcome to my OS Portfolio!\n\nYou can use this notepad to jot down some temporary thoughts while you explore.",
+  ));
+  const [desktopIcons, setDesktopIcons] = useState(() => hydrateDesktopIcons(readStoredJson(STORAGE_KEYS.desktopIcons, null)));
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
-  const [accentColor, setAccentColor] = useState('#00a2ed');
+  const [accentColor, setAccentColor] = useState(() => readStoredString(STORAGE_KEYS.accentColor, '#00a2ed'));
   const [isBsod, setIsBsod] = useState(false);
   const [windows, setWindows] = useState({});
   const [activeWindow, setActiveWindow] = useState(null);
   const [maxZIndex, setMaxZIndex] = useState(10);
   const [isStartOpen, setIsStartOpen] = useState(false);
   const [contextMenu, setContextMenu] = useState({ isOpen: false, x: 0, y: 0 });
+  const [modal, setModal] = useState(null);
+  const [toasts, setToasts] = useState([]);
 
   const runBootSequence = (isReboot = false) => {
     setBooting(true);
@@ -96,6 +190,25 @@ function App() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  useEffect(() => {
+    window.localStorage.setItem(STORAGE_KEYS.wallpaper, wallpaper);
+  }, [wallpaper]);
+
+  useEffect(() => {
+    window.localStorage.setItem(STORAGE_KEYS.accentColor, accentColor);
+  }, [accentColor]);
+
+  useEffect(() => {
+    window.localStorage.setItem(STORAGE_KEYS.notepadText, notepadText);
+  }, [notepadText]);
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      STORAGE_KEYS.desktopIcons,
+      JSON.stringify(desktopIcons.map(({ id, position }) => ({ id, position }))),
+    );
+  }, [desktopIcons]);
+
   const playSfx = (type) => {
     const sounds = {
       click: 'https://www.soundjay.com/buttons/button-16.mp3',
@@ -110,32 +223,36 @@ function App() {
     }
   };
 
-
-  
-  const [desktopIcons, setDesktopIcons] = useState([
-    { id: 'about', name: 'About Me', icon: User, position: { x: 20, y: 20 } },
-    { id: 'education', name: 'Education', icon: GraduationCap, position: { x: 20, y: 120 } },
-    { id: 'projects', name: 'Projects', icon: FolderDot, position: { x: 20, y: 220 } },
-    { id: 'skills', name: 'Skills', icon: Wrench, position: { x: 20, y: 320 } },
-    { id: 'contact', name: 'Contact', icon: Mail, position: { x: 20, y: 420 } },
-    { id: 'notepad', name: 'Notepad', icon: FileText, position: { x: 120, y: 20 } },
-    { id: 'settings', name: 'Settings', icon: Settings, position: { x: 120, y: 120 } },
-    { id: 'terminal', name: 'Terminal', icon: Terminal, position: { x: 120, y: 220 } },
-    { id: 'music', name: 'Music', icon: Music, position: { x: 120, y: 320 } },
-    { id: 'browser', name: 'Browser', icon: Globe, position: { x: 120, y: 420 } },
-    { id: 'explorer', name: 'File Explorer', icon: HardDrive, position: { x: 220, y: 20 } },
-  ]);
-
   const updateIconPosition = (id, newPos) => {
     setDesktopIcons(prev => prev.map(icon => 
       icon.id === id ? { ...icon, position: newPos } : icon
     ));
   };
 
+  const dismissToast = (id) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
+  };
+
+  const pushToast = ({ title, description, tone = 'info' }) => {
+    const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    setToasts((prev) => [...prev, { id, title, description, tone }]);
+    window.setTimeout(() => dismissToast(id), 3600);
+  };
+
+  const closeModal = () => {
+    setModal(null);
+  };
+
+  const openExternalResource = (url, label = 'Link') => {
+    window.open(url, '_blank', 'noopener,noreferrer');
+    pushToast({
+      tone: 'info',
+      title: `${label} opened externally`,
+      description: 'Launched in a real browser tab for the best experience.',
+    });
+  };
 
   
-
-
   const appConfigs = {
     about: { title: 'About Me', icon: User },
     education: { title: 'Education', icon: GraduationCap },
@@ -144,6 +261,7 @@ function App() {
     contact: { title: 'Contact', icon: Mail },
     settings: { title: 'Settings', icon: Settings },
     notepad: { title: 'Notepad', icon: FileText },
+    resume: { title: 'Resume', icon: FileText },
     terminal: { title: 'Terminal', icon: Terminal },
     music: { title: 'Music Player', icon: Music },
     browser: { title: 'Web Browser', icon: Globe },
@@ -154,11 +272,20 @@ function App() {
   const openApp = (type) => {
     playSfx('click');
     setIsStartOpen(false);
+
+    if (isMobile) {
+      const existingMobileWindow = Object.entries(windows).find(([, win]) => win.type === type);
+
+      if (existingMobileWindow) {
+        focusWindow(existingMobileWindow[0]);
+        return;
+      }
+    }
     
     // For some apps (like Settings), maybe keep only one instance?
     // But for now, let's allow multi for everything.
     const instanceId = `${type}-${Date.now()}`;
-    const z = bringToFront(instanceId);
+    const z = bringToFront();
     
     setWindows(prev => ({
       ...prev,
@@ -167,9 +294,10 @@ function App() {
         type,
         isOpen: true,
         isMinimized: false,
-        isFullscreen: false,
+        isFullscreen: isMobile,
         snap: 'none',
-        zIndex: z
+        zIndex: z,
+        launchIndex: Object.keys(prev).length % 5
       }
     }));
     setActiveWindow(instanceId);
@@ -185,7 +313,7 @@ function App() {
     if (activeWindow === instanceId) setActiveWindow(null);
   };
 
-  const bringToFront = (id) => {
+  const bringToFront = () => {
     const newZIndex = maxZIndex + 1;
     setMaxZIndex(newZIndex);
     return newZIndex;
@@ -251,7 +379,13 @@ function App() {
 
   const handleContextMenu = (e) => {
     e.preventDefault();
-    setContextMenu({ isOpen: true, x: e.pageX, y: e.pageY });
+    const menuWidth = 240;
+    const menuHeight = 260;
+    setContextMenu({
+      isOpen: true,
+      x: Math.min(e.pageX, window.innerWidth - menuWidth),
+      y: Math.min(e.pageY, window.innerHeight - menuHeight),
+    });
     setIsStartOpen(false);
   };
 
@@ -263,6 +397,122 @@ function App() {
   const handleSortIcons = () => {
     playSfx('click');
     setDesktopIcons(prev => [...prev].sort((a, b) => a.name.localeCompare(b.name)));
+    pushToast({
+      tone: 'success',
+      title: 'Desktop sorted',
+      description: 'Icons were organized alphabetically.',
+    });
+  };
+
+  const handleWallpaperChange = (nextWallpaper) => {
+    setWallpaper(nextWallpaper);
+    pushToast({
+      tone: 'success',
+      title: 'Wallpaper updated',
+      description: 'Your desktop background was refreshed.',
+    });
+  };
+
+  const handleAccentChange = (nextAccentColor) => {
+    setAccentColor(nextAccentColor);
+    pushToast({
+      tone: 'success',
+      title: 'Accent color changed',
+      description: 'The interface palette updated instantly.',
+    });
+  };
+
+  const handleSystemInfo = () => {
+    setModal({
+      tone: 'info',
+      title: 'System Information',
+      subtitle: 'Santosh Portfolio OS v2.0.4',
+      description: 'A desktop-style portfolio focused on machine learning projects, interactive apps, and playful UI systems.',
+      details: [
+        { label: 'Build', value: '2026.03.20' },
+        { label: 'Environment', value: 'React + Vite' },
+        { label: 'Primary Focus', value: 'AI / ML Projects' },
+        { label: 'Mode', value: isMobile ? 'Mobile Touch' : 'Desktop Workspace' },
+      ],
+      actions: [{ label: 'Close', variant: 'primary' }],
+    });
+  };
+
+  const handleShutdownPrompt = () => {
+    setModal({
+      tone: 'warning',
+      title: 'Power Options',
+      subtitle: 'Choose how to leave the workspace',
+      description: 'You can lock the system or reboot the full desktop experience.',
+      actions: [
+        { label: 'Cancel', variant: 'ghost' },
+        {
+          label: 'Lock Screen',
+          variant: 'primary',
+          onClick: () => {
+            setWindows({});
+            setActiveWindow(null);
+            setIsStartOpen(false);
+            setContextMenu({ isOpen: false, x: 0, y: 0 });
+            setIsLocked(true);
+            pushToast({
+              tone: 'info',
+              title: 'Session locked',
+              description: 'The desktop was returned to the sign-in screen.',
+            });
+          },
+        },
+        {
+          label: 'Restart',
+          variant: 'danger',
+          onClick: () => {
+            handleRestart();
+          },
+        },
+      ],
+    });
+  };
+
+  const handleFilePreview = ({ name, path }) => {
+    const actions = [{ label: 'Close', variant: 'ghost' }];
+
+    if (name === 'Resume.pdf') {
+      actions.unshift({
+        label: 'Open Resume App',
+        variant: 'primary',
+        onClick: () => openApp('resume'),
+      });
+    }
+
+    setModal({
+      tone: 'info',
+      title: 'File Preview',
+      subtitle: name,
+      description: 'This desktop uses lightweight previews for files inside the mock file explorer.',
+      details: [
+        { label: 'Name', value: name },
+        { label: 'Location', value: path },
+        { label: 'Status', value: 'Preview mode' },
+      ],
+      actions,
+    });
+  };
+
+  const handleKernelShutdownRequest = () => {
+    setModal({
+      tone: 'danger',
+      title: 'Critical Process Warning',
+      subtitle: 'System Kernel',
+      description: 'Ending this process will intentionally trigger a system crash screen for the portfolio demo.',
+      actions: [
+        { label: 'Cancel', variant: 'ghost' },
+        {
+          label: 'End Process',
+          variant: 'danger',
+          onClick: () => setIsBsod(true),
+        },
+      ],
+    });
   };
 
   if (booting) {
@@ -290,9 +540,9 @@ function App() {
       <>
         <div 
           className="desktop-bg" 
-          style={{ background: wallpaper, backgroundSize: 'cover', backgroundPosition: 'center', filter: 'blur(20px)', transform: 'scale(1.1)' }}
+          style={getWallpaperStyle(wallpaper, { filter: 'blur(20px)', transform: 'scale(1.1)' })}
         ></div>
-        <LoginScreen onLogin={() => { setIsLocked(false); openApp('about'); }} playSfx={playSfx} />
+        <LoginScreen onLogin={() => { setIsLocked(false); }} playSfx={playSfx} />
       </>
     );
   }
@@ -306,6 +556,9 @@ function App() {
     isFullscreen: windows[instanceId].isFullscreen,
     snap: windows[instanceId].snap,
     zIndex: windows[instanceId].zIndex,
+    initialIndex: windows[instanceId].launchIndex ?? 0,
+    isActive: activeWindow === instanceId,
+    noPadding: ['browser', 'settings', 'music', 'explorer', 'taskmanager', 'terminal', 'notepad', 'resume'].includes(windows[instanceId].type),
     onClose: () => closeWindow(instanceId),
     onMinimize: () => minimizeWindow(instanceId),
     onFocus: () => focusWindow(instanceId),
@@ -314,13 +567,19 @@ function App() {
   });
 
   return (
-    <div style={{ '--accent-color': accentColor }}>
+    <div style={{ '--accent-color': accentColor, height: '100%', position: 'relative' }}>
       <div 
         className="desktop-bg" 
-        style={{ background: wallpaper, backgroundSize: 'cover', backgroundPosition: 'center' }}
+        style={getWallpaperStyle(wallpaper)}
       ></div>
-      <div className="desktop" onClick={handleClick} onContextMenu={handleContextMenu}>
+      <div className={`desktop ${isMobile ? 'mobile-mode' : ''}`} onClick={handleClick} onContextMenu={handleContextMenu}>
         <DesktopAtmosphere />
+        {isMobile && (
+          <div className="mobile-home-banner">
+            <span>Mobile mode</span>
+            <strong>Tap icons once to open apps. Windows launch full-screen.</strong>
+          </div>
+        )}
         <div className="desktop-icons-container">
           {desktopIcons.map((icon) => (
             <DesktopIcon 
@@ -331,6 +590,7 @@ function App() {
               position={icon.position}
               disabled={isMobile}
               onDragStop={(newPos) => updateIconPosition(icon.id, newPos)}
+              onActivate={() => openApp(icon.id)}
               onDoubleClick={() => openApp(icon.id)}
             />
           ))}
@@ -342,77 +602,106 @@ function App() {
           <Window key={instanceId} {...getWindowProps(instanceId)}>
             {win.type === 'about' && (
               <div className="about-content">
-                <div className="about-header">
-                  <div className="avatar-circle">SS</div>
-                  <div>
-                    <h2 className="title-text">Aithani Santosh Singh</h2>
-                    <p className="subtitle-text">Software Engineering Student | AI Enthusiast</p>
+                <section className="about-hero-card">
+                  <div className="about-header">
+                    <div className="avatar-circle">SS</div>
+                    <div>
+                      <p className="section-eyebrow">Open for internships and collaborative builds</p>
+                      <h2 className="title-text">Aithani Santosh Singh</h2>
+                      <p className="subtitle-text">Software Engineering Student | AI Enthusiast</p>
+                    </div>
+                  </div>
+                  <div className="about-actions">
+                    <button type="button" className="resume-btn" onClick={() => openApp('resume')}>
+                      <Download size={16} />
+                      Resume App
+                    </button>
+                    <a href="https://github.com/SantoshSingh1707" target="_blank" rel="noreferrer" className="resume-btn warning-bg">
+                      GitHub
+                    </a>
+                  </div>
+                </section>
+
+                <div className="about-stats-grid">
+                  <div className="stat-card">
+                    <span className="stat-label">Focus</span>
+                    <strong>AI + Machine Learning</strong>
+                  </div>
+                  <div className="stat-card">
+                    <span className="stat-label">Current Track</span>
+                    <strong>ML Systems</strong>
+                  </div>
+                  <div className="stat-card">
+                    <span className="stat-label">Based In</span>
+                    <strong>Dehradun, India</strong>
                   </div>
                 </div>
-                <div className="body-text">
-                  <p style={{ marginBottom: '15px' }}>
-                    I am a passionate computer science student at Dehradun Institute of Technology. 
-                    Driven by the potential of AI and machine learning, I explore cutting-edge 
-                    technologies, build impactful applications, and solve complex problems.
-                  </p>
-                  <p>
-                    I regularly work on open-source projects including <strong>Machine Learning</strong>, 
-                    <strong> Anime Character sites</strong>, and practicing <strong>Data Structures & Algorithms in C/Java</strong>. 
-                    Check out my GitHub <code>SantoshSingh1707</code> to follow my journey!
-                  </p>
-                </div>
+
+                <section className="glass-card about-story">
+                  <div className="body-text">
+                    <p style={{ marginBottom: '15px' }}>
+                      I am a passionate computer science student at Dehradun Institute of Technology.
+                      Driven by the potential of AI and machine learning, I explore cutting-edge
+                      technologies, build impactful applications, and solve complex problems.
+                    </p>
+                    <p>
+                      My strongest work centers on <strong>machine learning pipelines</strong>,
+                      <strong> retrieval-augmented AI tools</strong>, and building systems that turn
+                      data into useful predictions. I also keep sharpening my foundation through
+                      <strong> Data Structures & Algorithms in C/Java</strong>. Check out my GitHub
+                      <code> SantoshSingh1707</code> to follow the journey.
+                    </p>
+                  </div>
+                </section>
               </div>
             )}
             {win.type === 'education' && (
-              <div className="glass-card">
-                <div className="flex-between">
-                  <div>
-                    <h3 className="card-title">Dehradun Institute of Technology</h3>
-                    <p className="card-subtitle">Bachelor of Engineering in Computer Science</p>
-                    <p className="card-detail">Minor: Animation</p>
+              <div className="education-layout">
+                <div className="glass-card education-hero">
+                  <div className="flex-between">
+                    <div>
+                      <p className="section-eyebrow">Education</p>
+                      <h3 className="card-title">Dehradun Institute of Technology</h3>
+                      <p className="card-subtitle">Bachelor of Engineering in Computer Science</p>
+                      <p className="card-detail">Minor: Animation</p>
+                    </div>
+                    <div className="badge">Expected May 2027</div>
                   </div>
-                  <div className="badge">Expected May 2027</div>
+                  <p className="card-detail">
+                    Building strong engineering fundamentals while exploring human-centered interfaces,
+                    machine learning systems, and product thinking.
+                  </p>
                 </div>
-                <h4 className="section-title">Relevant Coursework</h4>
-                <div className="flex-wrap">
-                  {['Data Structures', 'Algorithms', 'Operating Systems', 'Software Engineering', 'Artificial Intelligence', 'Data Analysis'].map(course => (
-                    <span key={course} className="skill-tag">{course}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-            {win.type === 'projects' && (
-              <div className="grid-2" style={{ padding: '10px' }}>
-                <div className="glass-card accent-left" style={{ padding: '20px' }}>
-                  <h3 className="card-title-dark" style={{ fontSize: '20px' }}>AI Study Tool</h3>
-                  <p className="card-subtitle-accent" style={{ margin: '4px 0 10px 0' }}>RAG Quiz Platform</p>
-                  <ul className="project-list" style={{ marginBottom: '15px', paddingLeft: '15px', fontSize: '14px' }}>
-                    <li>Built with LangChain, Mistral AI, & ChromaDB.</li>
-                    <li>Generates quizzes from PDFs/DOCX using GenAI.</li>
-                  </ul>
-                  <a href="https://github.com/SantoshSingh1707/AI-Study-Tool" target="_blank" rel="noreferrer" className="resume-btn warning-bg" style={{ padding: '8px 16px', fontSize: '13px' }}>
-                    Source Code
-                  </a>
-                </div>
-                {/* ... other projects ... */}
-                <div className="glass-card" style={{ padding: '20px', borderLeft: '6px solid #00a2ed' }}>
-                  <h3 className="card-title-dark" style={{ fontSize: '20px' }}>Kidney Disease Classifier</h3>
-                  <p className="card-subtitle-accent" style={{ margin: '4px 0 10px 0', color: '#00a2ed' }}>End-to-End ML Pipeline</p>
-                  <ul className="project-list" style={{ marginBottom: '15px', paddingLeft: '15px', fontSize: '14px' }}>
-                    <li>DVC, MLflow tracking, & CI/CD integration.</li>
-                    <li>Production-grade classification system.</li>
-                  </ul>
+
+                <div className="grid-2">
+                  <section className="glass-card">
+                    <h4 className="section-title">Relevant Coursework</h4>
+                    <div className="flex-wrap">
+                      {['Data Structures', 'Algorithms', 'Operating Systems', 'Software Engineering', 'Artificial Intelligence', 'Data Analysis'].map(course => (
+                        <span key={course} className="skill-tag">{course}</span>
+                      ))}
+                    </div>
+                  </section>
+                  <section className="glass-card">
+                    <h4 className="section-title">Highlights</h4>
+                    <ul className="project-list compact">
+                      <li>Combining core CS learning with applied AI and machine learning experimentation.</li>
+                      <li>Growing depth in Python, model training workflows, and production ML tooling.</li>
+                      <li>Using project-based learning to turn coursework into practical ML products.</li>
+                    </ul>
+                  </section>
                 </div>
               </div>
             )}
+            {win.type === 'projects' && <ProjectsApp onOpenExternal={openExternalResource} />}
             {win.type === 'skills' && (
-              <div className="grid-2">
+              <div className="skills-grid">
                 <section className="glass-card">
                   <h4 className="skill-section-title success-text">
-                    <LayoutGrid size={18} /> Languages
+                    <LayoutGrid size={18} /> Core Languages
                   </h4>
                   <div className="flex-wrap">
-                    {['Java', 'Python', 'JavaScript'].map(s => <span key={s} className="skill-tag success-tag">{s}</span>)}
+                    {['Python', 'Java', 'C'].map(s => <span key={s} className="skill-tag success-tag">{s}</span>)}
                   </div>
                 </section>
                 <section className="glass-card">
@@ -420,31 +709,57 @@ function App() {
                     <Wrench size={18} /> AI & ML
                   </h4>
                   <div className="flex-wrap">
-                    {['TensorFlow', 'Keras', 'Scikit-learn', 'OpenCV'].map(s => <span key={s} className="skill-tag">{s}</span>)}
+                    {['TensorFlow', 'Keras', 'Scikit-learn', 'OpenCV', 'MLflow', 'LangChain', 'ChromaDB'].map(s => <span key={s} className="skill-tag">{s}</span>)}
+                  </div>
+                </section>
+                <section className="glass-card">
+                  <h4 className="skill-section-title accent-text">
+                    <Globe size={18} /> Data & Workflow
+                  </h4>
+                  <div className="flex-wrap">
+                    {['Pandas', 'NumPy', 'DVC', 'Jupyter', 'Data Preprocessing'].map(s => <span key={s} className="skill-tag accent-tag">{s}</span>)}
+                  </div>
+                </section>
+                <section className="glass-card">
+                  <h4 className="skill-section-title warning-text">
+                    <Settings size={18} /> ML Engineering
+                  </h4>
+                  <div className="flex-wrap">
+                    {['Model Training', 'Evaluation', 'Experiment Tracking', 'Pipeline Thinking', 'Problem Solving'].map(s => <span key={s} className="skill-tag warning-tag">{s}</span>)}
                   </div>
                 </section>
               </div>
             )}
             {win.type === 'contact' && (
-              <div className="center-content">
-                <h2 className="title-text-dark">Let's Connect!</h2>
-                <div className="contact-card-container">
+              <div className="contact-shell">
+                <section className="glass-card contact-hero">
+                  <p className="section-eyebrow">Contact</p>
+                  <h2 className="title-text-dark">Let's build something thoughtful.</h2>
+                  <p className="body-text">
+                    Reach out for internships, collaboration, project discussions, or just a good
+                    engineering conversation.
+                  </p>
+                </section>
+                <div className="contact-card-grid">
                   <a href="mailto:santosh102969@gmail.com" className="contact-card">
                     <Mail size={20} color="#ea4335" /> santosh102969@gmail.com
                   </a>
                   <a href="https://github.com/SantoshSingh1707" target="_blank" rel="noreferrer" className="contact-card">
-                    <FolderDot size={20} color="#333" /> GitHub
+                    <FolderDot size={20} color="#333" /> github.com/SantoshSingh1707
                   </a>
+                  <button type="button" className="contact-card contact-card-button" onClick={() => openApp('resume')}>
+                    <Download size={20} color="#0078d7" /> Resume App
+                  </button>
                 </div>
               </div>
             )}
             {win.type === 'settings' && (
               <SettingsApp 
                 currentWallpaper={wallpaper} 
-                setWallpaper={setWallpaper} 
+                setWallpaper={handleWallpaperChange} 
                 wallpapers={wallpapers} 
                 accentColor={accentColor}
-                setAccentColor={setAccentColor}
+                setAccentColor={handleAccentChange}
               />
             )}
             {win.type === 'notepad' && (
@@ -458,14 +773,15 @@ function App() {
             )}
             {win.type === 'terminal' && <TerminalApp />}
             {win.type === 'music' && <MusicPlayer />}
-            {win.type === 'browser' && <BrowserApp />}
-            {win.type === 'explorer' && <FileExplorer />}
+            {win.type === 'browser' && <BrowserApp onOpenExternal={openExternalResource} />}
+            {win.type === 'explorer' && <FileExplorer onPreviewFile={handleFilePreview} />}
+            {win.type === 'resume' && <ResumeApp onOpenResume={openExternalResource} />}
             {win.type === 'taskmanager' && (
               <TaskManager 
                 windows={windows} 
                 onClose={closeWindow} 
                 onFocus={focusWindow} 
-                onBsod={() => setIsBsod(true)} 
+                onBsodRequest={handleKernelShutdownRequest} 
               />
             )}
           </Window>
@@ -479,11 +795,12 @@ function App() {
             onRefresh={() => window.location.reload()}
             onSort={handleSortIcons}
             onSettings={() => openApp('settings')}
+            onSystemInfo={handleSystemInfo}
           />
         )}
 
         {isStartOpen && (
-          <StartMenu windows={windows} onOpenApp={openApp} focusWindow={focusWindow} />
+          <StartMenu onOpenApp={openApp} onShutdown={handleShutdownPrompt} />
         )}
 
         <Taskbar 
@@ -496,6 +813,8 @@ function App() {
         />
         
         {isBsod && <BsodScreen onRestart={handleRestart} />}
+        <SystemModal modal={modal} onClose={closeModal} />
+        <SystemToastStack toasts={toasts} onDismiss={dismissToast} />
       </div>
     </div>
   );

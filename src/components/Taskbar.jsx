@@ -11,14 +11,20 @@ const Taskbar = ({ openWindows, activeWindow, onFocus, onToggleStart, isStartOpe
 
   return (
     <div className="taskbar">
+      <div className="taskbar-brand">
+        <span className="taskbar-brand-dot"></span>
+        <span>Santosh OS</span>
+      </div>
+
       <div className="taskbar-center">
-        <div className={`start-btn ${isStartOpen ? 'active' : ''}`} onClick={onToggleStart} title="Start">
+        <button type="button" className={`start-btn ${isStartOpen ? 'active' : ''}`} onClick={onToggleStart} title="Start">
           <LayoutGrid size={24} color={isStartOpen ? '#0078d7' : '#00a2ed'} fill={isStartOpen ? '#0078d7' : 'none'} />
-        </div>
+        </button>
         {Object.keys(openWindows).map(id => (
           openWindows[id].isOpen && (
-            <div 
+            <button 
               key={id} 
+              type="button"
               className={`taskbar-item ${activeWindow === id && !openWindows[id].isMinimized ? 'active' : ''} ${openWindows[id].isMinimized ? 'minimized-item' : ''}`}
               onClick={() => onFocus(id)}
               title={openWindows[id].title}
@@ -26,21 +32,22 @@ const Taskbar = ({ openWindows, activeWindow, onFocus, onToggleStart, isStartOpe
               <div className="taskbar-icon-wrapper">
                  {React.createElement(openWindows[id].icon, { size: 22, color: "white", strokeWidth: 1.5 })}
               </div>
-            </div>
+            </button>
           )
         ))}
       </div>
       
       <div className="taskbar-right">
-        <div className="system-tray" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '10px' }}>
-          <ChevronUp size={16} style={{ cursor: 'pointer', opacity: 0.8 }} />
-          <Wifi size={16} style={{ cursor: 'pointer', opacity: 0.8 }} />
-          <Volume2 size={16} style={{ cursor: 'pointer', opacity: 0.8 }} />
-          <BatteryMedium size={16} style={{ cursor: 'pointer', opacity: 0.8 }} />
+        <div className="system-tray">
+          <ChevronUp size={16} />
+          <Wifi size={16} />
+          <Volume2 size={16} />
+          <BatteryMedium size={16} />
+          <span className="system-tray-chip">Online</span>
         </div>
         <div className="taskbar-time">
           <span>{time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-          <span style={{ fontSize: '10px', opacity: 0.8 }}>{time.toLocaleDateString()}</span>
+          <span className="taskbar-date">{time.toLocaleDateString()}</span>
         </div>
       </div>
     </div>

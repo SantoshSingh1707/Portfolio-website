@@ -1,13 +1,29 @@
 import React, { useState } from 'react';
-import { Search, Power, Settings, User, GraduationCap, FolderDot, Wrench, Mail, FileText, Terminal, Music, Globe, HardDrive, LayoutGrid } from 'lucide-react';
+import {
+  Search,
+  Power,
+  Settings,
+  User,
+  FolderDot,
+  Wrench,
+  FileText,
+  Terminal,
+  Music,
+  Globe,
+  HardDrive,
+  LayoutGrid,
+  Sparkles,
+  ArrowRight,
+} from 'lucide-react';
 
-const StartMenu = ({ onOpenApp, focusWindow }) => {
+const StartMenu = ({ onOpenApp, onShutdown }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
   const pinnedApps = [
     { id: 'about', title: 'About Me', icon: User },
     { id: 'projects', title: 'Projects', icon: FolderDot },
     { id: 'skills', title: 'Skills', icon: Wrench },
+    { id: 'resume', title: 'Resume', icon: FileText },
     { id: 'notepad', title: 'Notepad', icon: FileText },
     { id: 'terminal', title: 'Terminal', icon: Terminal },
     { id: 'settings', title: 'Settings', icon: Settings },
@@ -20,9 +36,30 @@ const StartMenu = ({ onOpenApp, focusWindow }) => {
   const filteredApps = pinnedApps.filter(app => 
     app.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const launchFirstMatch = (event) => {
+    if (event.key === 'Enter' && filteredApps[0]) {
+      onOpenApp(filteredApps[0].id);
+    }
+  };
+
   return (
     <div className="start-menu" onClick={(e) => e.stopPropagation()}>
       <div className="start-menu-inner">
+        <div className="start-menu-hero">
+          <div>
+            <div className="start-menu-badge">
+              <Sparkles size={14} />
+              <span>Good to see you</span>
+            </div>
+            <h3>Launch apps, explore projects, and tune the desktop.</h3>
+          </div>
+          <button type="button" className="start-hero-action" onClick={() => onOpenApp('browser')}>
+            Open Browser
+            <ArrowRight size={14} />
+          </button>
+        </div>
+
         <div className="search-bar">
           <Search size={18} color="#666" />
           <input 
@@ -30,6 +67,7 @@ const StartMenu = ({ onOpenApp, focusWindow }) => {
             placeholder="Type here to search" 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyDown={launchFirstMatch}
             autoFocus
           />
         </div>
@@ -37,13 +75,14 @@ const StartMenu = ({ onOpenApp, focusWindow }) => {
         <div className="pinned-section">
           <div className="section-header">
             <h4>Pinned</h4>
-            <button className="all-apps-btn">All apps {'>'}</button>
+            <button type="button" className="all-apps-btn">Desktop Apps</button>
           </div>
           
           <div className="start-menu-grid">
             {filteredApps.map(app => (
-              <div 
+              <button 
                 key={app.id} 
+                type="button"
                 className="start-menu-item"
                 onClick={() => onOpenApp(app.id)}
               >
@@ -51,28 +90,52 @@ const StartMenu = ({ onOpenApp, focusWindow }) => {
                   {React.createElement(app.icon, { size: 32, strokeWidth: 1.5 })}
                 </div>
                 <span>{app.title}</span>
-              </div>
+              </button>
             ))}
           </div>
         </div>
 
         <div className="recommended-section">
-          <h4>Recommended</h4>
+          <div className="section-header">
+            <h4>Recommended</h4>
+            <span className="section-caption">Fast ways to explore</span>
+          </div>
           <div className="recommended-grid">
-            <div className="recommended-item">
+            <button type="button" className="recommended-item" onClick={() => onOpenApp('about')}>
               <div className="rec-icon"><User size={20} /></div>
               <div className="rec-text">
-                <span className="rec-title">Get Started</span>
-                <span className="rec-desc">Welcome to Santosh OS</span>
+                <span className="rec-title">About Santosh</span>
+                <span className="rec-desc">Quick intro and current focus</span>
               </div>
-            </div>
-            <div className="recommended-item">
+            </button>
+            <button type="button" className="recommended-item" onClick={() => onOpenApp('settings')}>
               <div className="rec-icon"><Settings size={20} /></div>
               <div className="rec-text">
                 <span className="rec-title">Personalize</span>
-                <span className="rec-desc">Change your wallpaper</span>
+                <span className="rec-desc">Wallpaper, accent, and visual feel</span>
               </div>
-            </div>
+            </button>
+            <button type="button" className="recommended-item" onClick={() => onOpenApp('projects')}>
+              <div className="rec-icon"><FolderDot size={20} /></div>
+              <div className="rec-text">
+                <span className="rec-title">Project Tour</span>
+                <span className="rec-desc">Jump into the strongest builds</span>
+              </div>
+            </button>
+            <button type="button" className="recommended-item" onClick={() => onOpenApp('resume')}>
+              <div className="rec-icon"><FileText size={20} /></div>
+              <div className="rec-text">
+                <span className="rec-title">Resume</span>
+                <span className="rec-desc">Preview the PDF and quick profile summary</span>
+              </div>
+            </button>
+            <button type="button" className="recommended-item" onClick={() => onOpenApp('taskmanager')}>
+              <div className="rec-icon"><LayoutGrid size={20} /></div>
+              <div className="rec-text">
+                <span className="rec-title">System Control</span>
+                <span className="rec-desc">View open apps and active windows</span>
+              </div>
+            </button>
           </div>
         </div>
       </div>
@@ -80,9 +143,12 @@ const StartMenu = ({ onOpenApp, focusWindow }) => {
       <div className="start-footer">
         <div className="user-info">
           <div className="user-avatar">SS</div>
-          <span>Santosh Singh</span>
+          <div className="user-meta">
+            <span>Santosh Singh</span>
+            <small>Portfolio Workspace</small>
+          </div>
         </div>
-        <Power size={20} color="#666" className="power-btn" onClick={() => alert('Shutting down...')} />
+        <Power size={20} color="#666" className="power-btn" onClick={onShutdown} />
       </div>
     </div>
   );

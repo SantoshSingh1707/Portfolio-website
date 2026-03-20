@@ -97,6 +97,37 @@ test('projects window shows repo-backed ML evidence panels', async ({ page }) =>
   await expect(page.locator('.projects-shell')).toContainText('Kidney Disease Classifier');
 });
 
+test('recruiter tour opens the guided overlay and advances to resume', async ({ page }) => {
+  await signIn(page);
+  await openStartApp(page, 'Recruiter Tour');
+  await page.getByRole('button', { name: 'Start Guided Tour' }).click();
+
+  await expect(page.locator('.tour-guide')).toContainText('Step 1 of');
+  await expect(page.locator('.window-title', { hasText: 'About Me' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Next Step' }).click();
+  await expect(page.locator('.tour-guide')).toContainText('Step 2 of');
+  await expect(page.locator('.window-title', { hasText: 'Resume' })).toBeVisible();
+});
+
+test('live demo app switches modes and renders local output', async ({ page }) => {
+  await signIn(page);
+  await openStartApp(page, 'Live Demo');
+
+  await page.getByRole('button', { name: 'Research Brief' }).click();
+  await expect(page.getByRole('heading', { name: 'Research Brief' })).toBeVisible();
+  await expect(page.locator('.demo-summary')).toContainText('Retrieval augmented generation');
+});
+
+test('ai assistant answers portfolio questions with app-aware help', async ({ page }) => {
+  await signIn(page);
+  await openStartApp(page, 'AI Assistant');
+
+  await page.getByRole('button', { name: 'What does Santosh focus on?' }).click();
+  await expect(page.locator('.assistant-thread')).toContainText('machine learning systems');
+  await expect(page.getByRole('button', { name: 'Open related app' })).toBeVisible();
+});
+
 test.describe('mobile behavior', () => {
   test.use({ viewport: { width: 390, height: 844 } });
 

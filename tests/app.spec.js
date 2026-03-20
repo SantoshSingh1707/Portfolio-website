@@ -16,6 +16,37 @@ test('desktop loads without auto-opening a window', async ({ page }) => {
   await expect(page.locator('.window')).toHaveCount(0);
 });
 
+test('terminal keeps its toolbar visible and desktop stays viewport-locked', async ({ page }) => {
+  await signIn(page);
+  await openStartApp(page, 'Terminal');
+
+  await expect(page.locator('.window-title', { hasText: 'Terminal' })).toBeVisible();
+  await expect(page.locator('.terminal-toolbar')).toBeVisible();
+  await expect(page.locator('.terminal-input-row')).toBeVisible();
+
+  const layout = await page.evaluate(() => ({
+    innerHeight: window.innerHeight,
+    docScrollHeight: document.documentElement.scrollHeight,
+    windowRect: (() => {
+      const terminalWindow = Array.from(document.querySelectorAll('.window')).find((node) =>
+        node.querySelector('.window-title')?.textContent?.includes('Terminal'),
+      );
+
+      if (!terminalWindow) {
+        return null;
+      }
+
+      const rect = terminalWindow.getBoundingClientRect();
+      return { x: rect.x, y: rect.y };
+    })(),
+  }));
+
+  expect(layout.docScrollHeight).toBeLessThanOrEqual(layout.innerHeight + 2);
+  expect(layout.windowRect).not.toBeNull();
+  expect(layout.windowRect.x).toBeGreaterThanOrEqual(0);
+  expect(layout.windowRect.y).toBeGreaterThanOrEqual(0);
+});
+
 test('settings choices persist after refresh', async ({ page }) => {
   await signIn(page);
   await openStartApp(page, 'Settings');
@@ -95,6 +126,18 @@ test('projects window shows repo-backed ML evidence panels', async ({ page }) =>
   await expect(page.locator('.projects-shell')).toContainText('Repo-backed ML project snapshots');
   await expect(page.locator('.projects-shell')).toContainText('AI Study Tool');
   await expect(page.locator('.projects-shell')).toContainText('Kidney Disease Classifier');
+});
+
+test('command palette opens with Ctrl+K and launches an app', async ({ page }) => {
+  await signIn(page);
+  await page.keyboard.press('Control+k');
+
+  await expect(page.locator('.command-palette')).toBeVisible();
+  await page.getByPlaceholder('Search commands and apps...').fill('model monitor');
+  await page.keyboard.press('Enter');
+
+  await expect(page.locator('.command-palette')).toHaveCount(0);
+  await expect(page.locator('.window-title', { hasText: 'Model Monitor' })).toBeVisible();
 });
 
 test('recruiter tour opens the guided overlay and advances to resume', async ({ page }) => {

@@ -17,7 +17,14 @@ const Taskbar = ({ openWindows, activeWindow, onFocus, onToggleStart, isStartOpe
       </div>
 
       <div className="taskbar-center">
-        <button type="button" className={`start-btn ${isStartOpen ? 'active' : ''}`} onClick={onToggleStart} title="Start">
+        <button
+          type="button"
+          className={`start-btn ${isStartOpen ? 'active' : ''}`}
+          onClick={onToggleStart}
+          title="Start"
+          data-tooltip="Start"
+          aria-label="Start"
+        >
           <LayoutGrid size={24} color={isStartOpen ? '#0078d7' : '#00a2ed'} fill={isStartOpen ? '#0078d7' : 'none'} />
         </button>
         {Object.keys(openWindows).map(id => (
@@ -28,6 +35,8 @@ const Taskbar = ({ openWindows, activeWindow, onFocus, onToggleStart, isStartOpe
               className={`taskbar-item ${activeWindow === id && !openWindows[id].isMinimized ? 'active' : ''} ${openWindows[id].isMinimized ? 'minimized-item' : ''}`}
               onClick={() => onFocus(id)}
               title={openWindows[id].title}
+              data-tooltip={openWindows[id].title}
+              aria-label={openWindows[id].title}
             >
               <div className="taskbar-icon-wrapper">
                  {React.createElement(openWindows[id].icon, { size: 22, color: "white", strokeWidth: 1.5 })}

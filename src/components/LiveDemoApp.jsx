@@ -1,11 +1,13 @@
 import React, { useMemo, useState } from 'react';
-import { BrainCircuit, Play, Sparkles, WandSparkles } from 'lucide-react';
+import { BrainCircuit, ExternalLink, Play, Sparkles, WandSparkles } from 'lucide-react';
 
 const modes = [
   { id: 'quiz', label: 'Quiz Builder' },
   { id: 'brief', label: 'Research Brief' },
   { id: 'signals', label: 'Signal Extractor' },
 ];
+
+const AI_STUDY_TOOL_LIVE_URL = 'https://ai-study-tool-jymarkehtgcxyqgpqjz9ki.streamlit.app/';
 
 const defaultInput = `Retrieval augmented generation combines document search with language models.
 Good chunking improves relevance, while source citations improve trust.
@@ -71,11 +73,20 @@ const buildDemoResult = (text, mode) => {
   };
 };
 
-const LiveDemoApp = () => {
+const LiveDemoApp = ({ onOpenExternal }) => {
   const [mode, setMode] = useState('quiz');
   const [input, setInput] = useState(defaultInput);
 
   const result = useMemo(() => buildDemoResult(input, mode), [input, mode]);
+
+  const openLiveStudyTool = () => {
+    if (onOpenExternal) {
+      onOpenExternal(AI_STUDY_TOOL_LIVE_URL, 'AI Study Tool Live App');
+      return;
+    }
+
+    window.open(AI_STUDY_TOOL_LIVE_URL, '_blank', 'noopener,noreferrer');
+  };
 
   return (
     <div className="demo-app">
@@ -91,6 +102,10 @@ const LiveDemoApp = () => {
         <div className="demo-hero-badges">
           <span className="lab-pill"><BrainCircuit size={14} /> Local logic</span>
           <span className="lab-pill"><WandSparkles size={14} /> Inspectable output</span>
+          <button type="button" className="demo-run-btn demo-open-live-btn" onClick={openLiveStudyTool}>
+            <ExternalLink size={14} />
+            Open Live App
+          </button>
         </div>
       </section>
 

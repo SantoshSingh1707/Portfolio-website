@@ -35,13 +35,14 @@ class Particle {
 
 const DesktopAtmosphere = () => {
   const canvasRef = useRef(null);
+  const parallaxRef = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
 
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     let animationFrameId;
     let particles = [];
-    const particleCount = 40;
+    const particleCount = 36;
 
     const resize = () => {
       canvas.width = window.innerWidth;
@@ -57,6 +58,10 @@ const DesktopAtmosphere = () => {
     };
 
     const animate = () => {
+      parallaxRef.current.x += (parallaxRef.current.tx - parallaxRef.current.x) * 0.06;
+      parallaxRef.current.y += (parallaxRef.current.ty - parallaxRef.current.y) * 0.06;
+      canvas.style.transform = `translate3d(${parallaxRef.current.x}px, ${parallaxRef.current.y}px, 0)`;
+
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       particles.forEach(p => {
         p.update();
@@ -65,19 +70,36 @@ const DesktopAtmosphere = () => {
       animationFrameId = requestAnimationFrame(animate);
     };
 
+    const handlePointerMove = (event) => {
+      const px = (event.clientX / window.innerWidth) - 0.5;
+      const py = (event.clientY / window.innerHeight) - 0.5;
+      parallaxRef.current.tx = px * 16;
+      parallaxRef.current.ty = py * 16;
+    };
+
+    const resetParallax = () => {
+      parallaxRef.current.tx = 0;
+      parallaxRef.current.ty = 0;
+    };
+
     init();
     animate();
     window.addEventListener('resize', resize);
+    window.addEventListener('mousemove', handlePointerMove);
+    window.addEventListener('mouseleave', resetParallax);
 
     return () => {
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', resize);
+      window.removeEventListener('mousemove', handlePointerMove);
+      window.removeEventListener('mouseleave', resetParallax);
     };
   }, []);
 
   return (
     <canvas 
       ref={canvasRef} 
+      className="desktop-atmosphere"
       style={{ 
         position: 'absolute', 
         top: 0, 
@@ -86,7 +108,7 @@ const DesktopAtmosphere = () => {
         height: '100%', 
         pointerEvents: 'none', 
         zIndex: 1,
-        opacity: 0.6
+        opacity: 0.5
       }} 
     />
   );

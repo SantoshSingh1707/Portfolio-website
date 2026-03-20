@@ -26,6 +26,7 @@ const TerminalApp = ({ onOpenApp, onStartTour }) => {
   ]);
   const [input, setInput] = useState('');
   const endRef = useRef(null);
+  const inputRef = useRef(null);
 
   const executeCommand = (rawInput) => {
     const command = rawInput.trim();
@@ -169,14 +170,14 @@ const TerminalApp = ({ onOpenApp, onStartTour }) => {
         </div>
       </div>
 
-      <div className="terminal-body" onClick={() => document.getElementById('terminal-input')?.focus()}>
+      <div className="terminal-body" onClick={() => inputRef.current?.focus()}>
         {history.map((line, index) => (
           <pre key={index} className="terminal-line">{line}</pre>
         ))}
         <div className="terminal-input-row">
           <span className="terminal-prompt">C:\Users\Santosh&gt;</span>
           <input
-            id="terminal-input"
+            ref={inputRef}
             type="text"
             value={input}
             onChange={(event) => setInput(event.target.value)}

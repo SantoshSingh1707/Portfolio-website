@@ -1,199 +1,293 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Pause, Play, SkipBack, SkipForward, Volume2 } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { ExternalLink, Pause, Play, Search, Square, Youtube } from 'lucide-react';
 
-const tracks = [
-  {
-    title: 'Lofi Study Beats',
-    artist: 'Chillhop Session',
-    cover: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=400&auto=format&fit=crop',
-    src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-  },
-  {
-    title: 'Night Drive Notes',
-    artist: 'Neon Avenue',
-    cover: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?q=80&w=400&auto=format&fit=crop',
-    src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
-  },
-  {
-    title: 'Deep Work Radio',
-    artist: 'Focus Club',
-    cover: 'https://images.unsplash.com/photo-1501612780327-45045538702b?q=80&w=400&auto=format&fit=crop',
-    src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
-  },
-];
+const YOUTUBE_SEARCH_URL = 'https://www.youtube.com/results?search_query=';
+const YOUTUBE_EMBED_URL = 'https://www.youtube-nocookie.com/embed';
+const PIPED_API_URL = 'https://api.piped.private.coffee';
 
-const formatTime = (seconds) => {
-  if (!Number.isFinite(seconds)) {
-    return '00:00';
+const isLikelyVideoId = (value) => /^[a-zA-Z0-9_-]{11}$/.test(value);
+
+const extractYoutubeVideoId = (value) => {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return '';
   }
 
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = Math.floor(seconds % 60);
-  return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+  if (isLikelyVideoId(trimmed)) {
+    return trimmed;
+  }
+
+  try {
+    const parsed = new URL(trimmed.includes('://') ? trimmed : `https://${trimmed}`);
+
+    if (parsed.hostname.includes('youtu.be')) {
+      const candidate = parsed.pathname.split('/').filter(Boolean)[0] || '';
+      return isLikelyVideoId(candidate) ? candidate : '';
+    }
+
+    const queryId = parsed.searchParams.get('v');
+    if (queryId && isLikelyVideoId(queryId)) {
+      return queryId;
+    }
+
+    const segments = parsed.pathname.split('/').filter(Boolean);
+    const namedSegmentIndex = segments.findIndex((segment) => ['embed', 'shorts', 'live'].includes(segment));
+    if (namedSegmentIndex >= 0) {
+      const candidate = segments[namedSegmentIndex + 1] || '';
+      return isLikelyVideoId(candidate) ? candidate : '';
+    }
+  } catch {
+    return '';
+  }
+
+  return '';
 };
 
-const MusicPlayer = () => {
-  const audioRef = useRef(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [trackIndex, setTrackIndex] = useState(0);
+const formatDuration = (seconds) => {
+  if (!Number.isFinite(seconds) || seconds <= 0) {
+    return 'Live';
+  }
 
-  const currentTrack = useMemo(() => tracks[trackIndex], [trackIndex]);
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
 
-  useEffect(() => {
-    const audio = audioRef.current;
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  }
 
-    if (!audio) {
+  return `${minutes}:${String(secs).padStart(2, '0')}`;
+};
+
+const MusicPlayer = ({ onOpenExternal }) => {
+  const youtubeFrameRef = useRef(null);
+  const [youtubeInput, setYoutubeInput] = useState('');
+  const [youtubeVideoId, setYoutubeVideoId] = useState('');
+  const [youtubeHint, setYoutubeHint] = useState('Search YouTube in-app or paste a direct YouTube link to play.');
+  const [youtubeResults, setYoutubeResults] = useState([]);
+  const [isSearchingYoutube, setIsSearchingYoutube] = useState(false);
+  const [isYoutubePlaying, setIsYoutubePlaying] = useState(false);
+
+  const openExternal = (url, label) => {
+    if (onOpenExternal) {
+      onOpenExternal(url, label);
       return;
     }
 
-    audio.load();
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
 
-    if (isPlaying) {
-      audio.play().catch(() => setIsPlaying(false));
-    }
-  }, [trackIndex, isPlaying]);
+  const sendYoutubeCommand = (func) => {
+    const playerWindow = youtubeFrameRef.current?.contentWindow;
 
-  const togglePlay = () => {
-    const audio = audioRef.current;
-
-    if (!audio) {
+    if (!playerWindow) {
       return;
     }
 
-    if (isPlaying) {
-      audio.pause();
-      setIsPlaying(false);
+    playerWindow.postMessage(
+      JSON.stringify({
+        event: 'command',
+        func,
+        args: [],
+      }),
+      '*',
+    );
+  };
+
+  const openYouTubeSearch = () => {
+    const query = youtubeInput.trim() || 'lofi music';
+    openExternal(`${YOUTUBE_SEARCH_URL}${encodeURIComponent(query)}`, 'YouTube Search');
+    setYoutubeHint(`Opened YouTube search for "${query}".`);
+  };
+
+  const searchYoutubeInApp = async () => {
+    const query = youtubeInput.trim() || 'lofi music';
+
+    setIsSearchingYoutube(true);
+    setYoutubeHint(`Searching YouTube for "${query}"...`);
+
+    try {
+      const response = await fetch(`${PIPED_API_URL}/search?q=${encodeURIComponent(query)}&filter=videos`);
+
+      if (!response.ok) {
+        throw new Error(`Search failed with status ${response.status}`);
+      }
+
+      const payload = await response.json();
+      const items = Array.isArray(payload.items) ? payload.items : [];
+      const parsedResults = items
+        .filter((item) => item?.type === 'stream' && item?.url)
+        .map((item) => {
+          const videoId = extractYoutubeVideoId(item.url);
+
+          return {
+            id: videoId || `${item.url}-${item.title}`,
+            videoId,
+            title: item.title || 'Untitled video',
+            channel: item.uploaderName || 'Unknown channel',
+            duration: formatDuration(item.duration),
+            thumbnail: item.thumbnail,
+            youtubeUrl: videoId ? `https://www.youtube.com/watch?v=${videoId}` : `https://www.youtube.com${item.url}`,
+          };
+        })
+        .filter((item) => item.videoId)
+        .slice(0, 8);
+
+      setYoutubeResults(parsedResults);
+
+      if (parsedResults.length) {
+        setYoutubeHint(`Found ${parsedResults.length} results. Click a result to play in-app.`);
+      } else {
+        setYoutubeHint('No playable YouTube results found. Try a different search phrase.');
+      }
+    } catch {
+      setYoutubeHint('Could not fetch in-app search results right now. Opening YouTube search instead.');
+      openYouTubeSearch();
+    } finally {
+      setIsSearchingYoutube(false);
+    }
+  };
+
+  const playEmbeddedYoutube = () => {
+    const videoId = extractYoutubeVideoId(youtubeInput);
+
+    if (videoId) {
+      setYoutubeVideoId(videoId);
+      setYoutubeResults([]);
+      setIsYoutubePlaying(true);
+      setYoutubeHint('Embedded YouTube player loaded.');
       return;
     }
 
-    audio.play().catch(() => setIsPlaying(false));
-    setIsPlaying(true);
-  };
-
-  const updateTrack = (nextIndex) => {
-    setTrackIndex(nextIndex);
-    setProgress(0);
-    setCurrentTime(0);
-    setDuration(0);
-  };
-
-  const playPrevious = () => {
-    updateTrack((trackIndex - 1 + tracks.length) % tracks.length);
-  };
-
-  const playNext = () => {
-    updateTrack((trackIndex + 1) % tracks.length);
-  };
-
-  const handleTimeUpdate = (event) => {
-    const nextCurrentTime = event.target.currentTime;
-    const nextDuration = event.target.duration || 0;
-    const nextProgress = nextDuration ? (nextCurrentTime / nextDuration) * 100 : 0;
-
-    setCurrentTime(nextCurrentTime);
-    setDuration(nextDuration);
-    setProgress(nextProgress);
-  };
-
-  const handleSeek = (event) => {
-    const audio = audioRef.current;
-
-    if (!audio || !duration) {
+    if (youtubeInput.trim()) {
+      openYouTubeSearch();
+      setYoutubeHint('No direct YouTube link detected, so search results were opened externally.');
       return;
     }
 
-    const nextTime = (Number(event.target.value) / 100) * duration;
-    audio.currentTime = nextTime;
-    setCurrentTime(nextTime);
-    setProgress(Number(event.target.value));
+    setYoutubeHint('Paste a YouTube URL like https://www.youtube.com/watch?v=... or youtu.be/...');
   };
+
+  const playYoutubeResult = (result) => {
+    setYoutubeVideoId(result.videoId);
+    setYoutubeInput(result.youtubeUrl);
+    setIsYoutubePlaying(true);
+    setYoutubeHint(`Now playing "${result.title}" in embedded YouTube player.`);
+  };
+
+  const toggleYoutubePlayback = () => {
+    if (!youtubeVideoId) {
+      return;
+    }
+
+    if (isYoutubePlaying) {
+      sendYoutubeCommand('pauseVideo');
+      setIsYoutubePlaying(false);
+      return;
+    }
+
+    sendYoutubeCommand('playVideo');
+    setIsYoutubePlaying(true);
+  };
+
+  const stopYoutubePlayback = () => {
+    if (!youtubeVideoId) {
+      return;
+    }
+
+    sendYoutubeCommand('stopVideo');
+    setIsYoutubePlaying(false);
+  };
+
+  const youtubeEmbedSrc = youtubeVideoId
+    ? `${YOUTUBE_EMBED_URL}/${youtubeVideoId}?autoplay=1&rel=0&enablejsapi=1`
+    : '';
 
   return (
-    <div className="music-player">
-      <audio
-        ref={audioRef}
-        src={currentTrack.src}
-        onTimeUpdate={handleTimeUpdate}
-        onLoadedMetadata={(event) => setDuration(event.target.duration || 0)}
-        onEnded={() => {
-          setIsPlaying(false);
-          playNext();
-        }}
-      ></audio>
-
-      <div className="music-player-shell">
-        <div className="music-visual">
-          <img src={currentTrack.cover} alt="Album Art" className="album-art" />
-          <div className="music-overlay-card">
-            <span className="music-kicker">Now Playing</span>
-            <h3>{currentTrack.title}</h3>
-            <p>{currentTrack.artist}</p>
+    <div className="music-player youtube-only">
+      <section className="music-youtube-panel music-youtube-panel-standalone">
+        <div className="music-youtube-head">
+          <div className="music-youtube-title">
+            <Youtube size={16} />
+            <span>YouTube Music Integration</span>
           </div>
-        </div>
-
-        <div className="music-meta-panel">
-          <div className="track-info">
-            <span className="track-pill">Lo-fi Rotation</span>
-            <h3>{currentTrack.title}</h3>
-            <p>{currentTrack.artist}</p>
-          </div>
-
-          <div className="progress-wrap">
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={progress}
-              onChange={handleSeek}
-              className="progress-slider"
-            />
-            <div className="track-times">
-              <span>{formatTime(currentTime)}</span>
-              <span>{formatTime(duration)}</span>
-            </div>
-          </div>
-
-          <div className="player-controls">
-            <button type="button" className="control-icon-button" onClick={playPrevious}>
-              <SkipBack size={22} className="control-icon" />
-            </button>
-            <button type="button" className="play-btn" onClick={togglePlay}>
-              {isPlaying ? <Pause size={24} fill="white" /> : <Play size={24} fill="white" style={{ marginLeft: '4px' }} />}
-            </button>
-            <button type="button" className="control-icon-button" onClick={playNext}>
-              <SkipForward size={22} className="control-icon" />
-            </button>
-          </div>
-
-          <div className="music-footer-row">
-            <div className="music-volume">
-              <Volume2 size={16} />
-              <span>Listening session active</span>
-            </div>
-            <span className="music-queue-count">{trackIndex + 1} / {tracks.length}</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="music-track-list">
-        {tracks.map((track, index) => (
-          <button
-            key={track.title}
-            type="button"
-            className={`music-track-card ${trackIndex === index ? 'active' : ''}`}
-            onClick={() => updateTrack(index)}
-          >
-            <img src={track.cover} alt={track.title} />
-            <div>
-              <strong>{track.title}</strong>
-              <span>{track.artist}</span>
-            </div>
+          <button type="button" className="music-youtube-btn secondary" onClick={openYouTubeSearch}>
+            <Search size={14} />
+            Open YouTube
           </button>
-        ))}
-      </div>
+        </div>
+
+        <div className="music-youtube-controls">
+          <input
+            type="text"
+            value={youtubeInput}
+            onChange={(event) => setYoutubeInput(event.target.value)}
+            placeholder="Paste YouTube URL or type a song name..."
+            className="music-youtube-input"
+          />
+          <button type="button" className="music-youtube-btn secondary" onClick={searchYoutubeInApp} disabled={isSearchingYoutube}>
+            <Search size={14} />
+            {isSearchingYoutube ? 'Searching...' : 'Search In App'}
+          </button>
+          <button type="button" className="music-youtube-btn" onClick={playEmbeddedYoutube}>
+            Play Link
+          </button>
+        </div>
+        <p className="music-youtube-hint">{youtubeHint}</p>
+
+        {youtubeResults.length ? (
+          <div className="music-youtube-results">
+            {youtubeResults.map((result) => (
+              <div key={result.id} className="music-youtube-result-card">
+                <button type="button" className="music-youtube-result-main" onClick={() => playYoutubeResult(result)}>
+                  <img src={result.thumbnail} alt={result.title} loading="lazy" />
+                  <div>
+                    <strong>{result.title}</strong>
+                    <span>{result.channel}</span>
+                    <small>{result.duration}</small>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  className="music-youtube-link-out"
+                  onClick={() => openExternal(result.youtubeUrl, result.title)}
+                >
+                  <ExternalLink size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : null}
+
+        {youtubeVideoId ? (
+          <div className="music-youtube-player-controls">
+            <button type="button" className="music-youtube-player-btn" onClick={toggleYoutubePlayback}>
+              {isYoutubePlaying ? <Pause size={14} /> : <Play size={14} />}
+              {isYoutubePlaying ? 'Pause' : 'Play'}
+            </button>
+            <button type="button" className="music-youtube-player-btn stop" onClick={stopYoutubePlayback}>
+              <Square size={14} />
+              Stop
+            </button>
+          </div>
+        ) : null}
+
+        {youtubeVideoId ? (
+          <div className="music-youtube-embed">
+            <iframe
+              ref={youtubeFrameRef}
+              src={youtubeEmbedSrc}
+              title="YouTube player"
+              allow="autoplay; encrypted-media; picture-in-picture"
+              allowFullScreen
+            ></iframe>
+          </div>
+        ) : (
+          <div className="music-youtube-empty">
+            Search for a track and press <strong>Search In App</strong>, then click a result to play.
+          </div>
+        )}
+      </section>
     </div>
   );
 };

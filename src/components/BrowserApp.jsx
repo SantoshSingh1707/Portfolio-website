@@ -15,6 +15,12 @@ const HOME_URL = 'app://home';
 
 const quickLinks = [
   {
+    label: 'AI Study Tool',
+    url: 'https://ai-study-tool-jymarkehtgcxyqgpqjz9ki.streamlit.app/',
+    category: 'Live App',
+    description: 'Launch the deployed Streamlit study assistant experience.',
+  },
+  {
     label: 'Hugging Face',
     url: 'https://huggingface.co/',
     category: 'Models',
@@ -94,6 +100,7 @@ const externalOnlyHosts = new Set([
   'www.mlflow.org',
   'dvc.org',
   'www.dvc.org',
+  'ai-study-tool-jymarkehtgcxyqgpqjz9ki.streamlit.app',
 ]);
 
 const looksLikeUrl = (value) => {

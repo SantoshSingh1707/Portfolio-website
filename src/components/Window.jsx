@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import Draggable from 'react-draggable';
 import { Minus, Square, X } from 'lucide-react';
 
@@ -8,30 +8,78 @@ const Window = ({
   noPadding, isFullscreen, snap, onToggleFullscreen, onSnap, initialIndex = 0
 }) => {
   const nodeRef = useRef(null);
+  const contentStyle = noPadding
+    ? { padding: 0, overflow: 'hidden', minHeight: 0 }
+    : { minHeight: 0 };
   
   if (!isOpen) return null;
 
-  const handleDragStop = (e, data) => {
-    const threshold = 20;
-    const screenWidth = window.innerWidth;
-    
-    if (data.y <= 0) {
-      onToggleFullscreen(id);
-    } else if (data.x <= threshold) {
-      onSnap(id, 'left');
-    } else if (data.x >= screenWidth - 200) { // arbitrary width check
-      onSnap(id, 'right');
-    } else {
-      onSnap(id, 'none');
+  const setSnapPreview = (target) => {
+    const root = document.documentElement;
+    if (target === 'none') {
+      delete root.dataset.snapPreview;
+      return;
     }
+
+    root.dataset.snapPreview = target;
   };
+
+  const getSnapTarget = (x, y) => {
+    const threshold = 28;
+    const screenWidth = window.innerWidth;
+
+    if (y <= 12) {
+      return 'fullscreen';
+    }
+
+    if (x <= threshold) {
+      return 'left';
+    }
+
+    if (x >= screenWidth - 220) {
+      return 'right';
+    }
+
+    return 'none';
+  };
+
+  const handleDrag = (e, data) => {
+    setSnapPreview(getSnapTarget(data.x, data.y));
+  };
+
+  const handleDragStop = (e, data) => {
+    const target = getSnapTarget(data.x, data.y);
+    setSnapPreview('none');
+
+    if (target === 'fullscreen') {
+      onToggleFullscreen(id);
+      return;
+    }
+
+    if (target === 'left' || target === 'right') {
+      onSnap(id, target);
+      return;
+    }
+
+    onSnap(id, 'none');
+  };
+
+  useEffect(() => {
+    return () => {
+      setSnapPreview('none');
+    };
+  }, []);
 
   return (
     <Draggable 
       nodeRef={nodeRef} 
       handle=".window-header" 
       bounds="parent"
-      onStart={() => onFocus(id)}
+      onStart={() => {
+        onFocus(id);
+        setSnapPreview('none');
+      }}
+      onDrag={handleDrag}
       onStop={handleDragStop}
       disabled={isFullscreen || snap !== 'none'}
       defaultPosition={{ x: 100 + (initialIndex * 30), y: 50 + (initialIndex * 30) }}
@@ -60,7 +108,7 @@ const Window = ({
             </button>
           </div>
         </div>
-        <div className="window-content" style={noPadding ? { padding: 0 } : {}} onMouseDown={(e) => { e.stopPropagation(); onFocus(id); }}>
+        <div className="window-content" style={contentStyle} onMouseDown={(e) => { e.stopPropagation(); onFocus(id); }}>
           {children}
         </div>
       </div>

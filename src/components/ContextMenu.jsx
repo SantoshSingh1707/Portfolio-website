@@ -3,13 +3,13 @@ import { RefreshCw, Settings, SortAsc, Info, Monitor } from 'lucide-react';
 
 const ContextMenu = ({ x, y, onClose, onRefresh, onSettings, onSort, onSystemInfo }) => {
   const actions = [
-    { label: 'Refresh', icon: RefreshCw, onClick: onRefresh },
-    { label: 'Sort Icons', icon: SortAsc, onClick: onSort },
+    { label: 'Refresh', icon: RefreshCw, shortcut: 'F5', onClick: onRefresh },
+    { label: 'Sort Icons', icon: SortAsc, shortcut: 'A-Z', onClick: onSort },
   ];
 
   const personalization = [
-    { label: 'Personalize', icon: Settings, onClick: onSettings },
-    { label: 'Display Settings', icon: Monitor, onClick: onSettings },
+    { label: 'Personalize', icon: Settings, shortcut: 'Theme', onClick: onSettings },
+    { label: 'Display Settings', icon: Monitor, shortcut: 'Layout', onClick: onSettings },
   ];
 
   return (
@@ -26,8 +26,9 @@ const ContextMenu = ({ x, y, onClose, onRefresh, onSettings, onSort, onSystemInf
               onClose();
             }}
           >
-            {React.createElement(action.icon, { size: 14 })}
+            <span className="context-menu-item-icon">{React.createElement(action.icon, { size: 14 })}</span>
             <span>{action.label}</span>
+            {action.shortcut ? <kbd className="context-menu-kbd">{action.shortcut}</kbd> : null}
           </button>
         ))}
       </div>
@@ -46,8 +47,9 @@ const ContextMenu = ({ x, y, onClose, onRefresh, onSettings, onSort, onSystemInf
               onClose();
             }}
           >
-            {React.createElement(action.icon, { size: 14 })}
+            <span className="context-menu-item-icon">{React.createElement(action.icon, { size: 14 })}</span>
             <span>{action.label}</span>
+            {action.shortcut ? <kbd className="context-menu-kbd">{action.shortcut}</kbd> : null}
           </button>
         ))}
       </div>
@@ -56,14 +58,15 @@ const ContextMenu = ({ x, y, onClose, onRefresh, onSettings, onSort, onSystemInf
 
       <button
         type="button"
-        className="context-menu-item"
+        className="context-menu-item context-menu-single"
         onClick={() => {
           onSystemInfo();
           onClose();
         }}
       >
-        <Info size={14} />
+        <span className="context-menu-item-icon"><Info size={14} /></span>
         <span>System Information</span>
+        <kbd className="context-menu-kbd">Info</kbd>
       </button>
     </div>
   );

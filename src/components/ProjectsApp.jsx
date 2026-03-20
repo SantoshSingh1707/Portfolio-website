@@ -9,6 +9,8 @@ import {
   Sparkles,
 } from 'lucide-react';
 
+const AI_STUDY_TOOL_LIVE_URL = 'https://ai-study-tool-jymarkehtgcxyqgpqjz9ki.streamlit.app/';
+
 const studySignals = [
   { label: 'Question types', value: 'MCQ + True/False' },
   { label: 'Question range', value: '1 to 15 per run' },
@@ -77,14 +79,24 @@ const ProjectsApp = ({ onOpenExternal }) => {
               <h3 className="card-title-dark">AI Study Tool</h3>
               <p className="card-subtitle-accent">RAG-Powered Quiz Platform</p>
             </div>
-            <button
-              type="button"
-              className="resume-inline-link"
-              onClick={() => openLink('https://github.com/SantoshSingh1707/AI-Study-Tool', 'AI Study Tool')}
-            >
-              <ExternalLink size={14} />
-              GitHub
-            </button>
+            <div className="project-card-actions">
+              <button
+                type="button"
+                className="resume-inline-link"
+                onClick={() => openLink(AI_STUDY_TOOL_LIVE_URL, 'AI Study Tool Live App')}
+              >
+                <ExternalLink size={14} />
+                Live App
+              </button>
+              <button
+                type="button"
+                className="resume-inline-link"
+                onClick={() => openLink('https://github.com/SantoshSingh1707/AI-Study-Tool', 'AI Study Tool')}
+              >
+                <ExternalLink size={14} />
+                GitHub
+              </button>
+            </div>
           </div>
 
           <div className="project-visual project-visual-study">

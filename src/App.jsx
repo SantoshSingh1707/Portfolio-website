@@ -34,6 +34,7 @@ import AchievementsApp from './components/AchievementsApp';
 import AIAssistantApp from './components/AIAssistantApp';
 import RecruiterTourApp from './components/RecruiterTourApp';
 import TourGuide from './components/TourGuide';
+import CommandPalette from './components/CommandPalette';
 import { recruiterTourSteps } from './data/portfolioSuiteData';
 import './App.css';
 
@@ -68,6 +69,72 @@ const STORAGE_KEYS = {
   accentColor: 'portfolio-os.accent-color',
   notepadText: 'portfolio-os.notepad-text',
   desktopIcons: 'portfolio-os.desktop-icons',
+};
+
+const ICON_LAYOUT = {
+  startX: 24,
+  startY: 20,
+  stepX: 120,
+  stepY: 118,
+  iconWidth: 110,
+  iconHeight: 110,
+  rightPadding: 36,
+  bottomPadding: 18,
+  taskbarHeight: 120,
+};
+
+const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+const getDesktopViewport = () => ({
+  width: window.innerWidth,
+  height: Math.max(ICON_LAYOUT.stepY * 2, window.innerHeight - ICON_LAYOUT.taskbarHeight),
+});
+
+const getGridBounds = (viewportWidth, viewportHeight) => {
+  const maxX = Math.max(ICON_LAYOUT.startX, viewportWidth - ICON_LAYOUT.rightPadding - ICON_LAYOUT.iconWidth);
+  const maxY = Math.max(ICON_LAYOUT.startY, viewportHeight - ICON_LAYOUT.bottomPadding - ICON_LAYOUT.iconHeight);
+  const columns = Math.max(1, Math.floor((maxX - ICON_LAYOUT.startX) / ICON_LAYOUT.stepX) + 1);
+  const rows = Math.max(1, Math.floor((maxY - ICON_LAYOUT.startY) / ICON_LAYOUT.stepY) + 1);
+
+  return { columns, rows };
+};
+
+const indexToGridCell = (index, rows) => ({
+  col: Math.floor(index / rows),
+  row: index % rows,
+});
+
+const gridCellToPosition = ({ col, row }) => ({
+  x: ICON_LAYOUT.startX + (col * ICON_LAYOUT.stepX),
+  y: ICON_LAYOUT.startY + (row * ICON_LAYOUT.stepY),
+});
+
+const positionToGridCell = (position, columns, rows) => ({
+  col: clamp(Math.round((position.x - ICON_LAYOUT.startX) / ICON_LAYOUT.stepX), 0, columns - 1),
+  row: clamp(Math.round((position.y - ICON_LAYOUT.startY) / ICON_LAYOUT.stepY), 0, rows - 1),
+});
+
+const arrangeIconsToGrid = (icons, viewportWidth, viewportHeight) => {
+  const { rows } = getGridBounds(viewportWidth, viewportHeight);
+
+  return icons.map((icon, index) => ({
+    ...icon,
+    position: gridCellToPosition(indexToGridCell(index, rows)),
+  }));
+};
+
+const resolveThemeMode = (date = new Date()) => {
+  const hour = date.getHours();
+
+  if (hour >= 7 && hour < 17) {
+    return 'day';
+  }
+
+  if (hour >= 17 && hour < 21) {
+    return 'dusk';
+  }
+
+  return 'night';
 };
 
 const readStoredString = (key, fallback) => {
@@ -144,7 +211,10 @@ function App() {
     STORAGE_KEYS.notepadText,
     "Welcome to my OS Portfolio!\n\nYou can use this notepad to jot down some temporary thoughts while you explore.",
   ));
-  const [desktopIcons, setDesktopIcons] = useState(() => hydrateDesktopIcons(readStoredJson(STORAGE_KEYS.desktopIcons, null)));
+  const [desktopIcons, setDesktopIcons] = useState(() => {
+    const { width, height } = getDesktopViewport();
+    return arrangeIconsToGrid(hydrateDesktopIcons(readStoredJson(STORAGE_KEYS.desktopIcons, null)), width, height);
+  });
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [accentColor, setAccentColor] = useState(() => readStoredString(STORAGE_KEYS.accentColor, '#00a2ed'));
   const [isBsod, setIsBsod] = useState(false);
@@ -156,6 +226,9 @@ function App() {
   const [modal, setModal] = useState(null);
   const [toasts, setToasts] = useState([]);
   const [tourIndex, setTourIndex] = useState(null);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isPresentationMode, setIsPresentationMode] = useState(false);
+  const [themeMode, setThemeMode] = useState(() => resolveThemeMode());
 
   const runBootSequence = (isReboot = false) => {
     setBooting(true);
@@ -202,9 +275,53 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    const handleResize = () => {
+      const { width, height } = getDesktopViewport();
+      setIsMobile(window.innerWidth <= 768);
+      setDesktopIcons((prev) => arrangeIconsToGrid(prev, width, height));
+    };
+
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      const isPaletteShortcut = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k';
+
+      if (!isPaletteShortcut) {
+        return;
+      }
+
+      if (booting || isLocked || isBsod) {
+        return;
+      }
+
+      event.preventDefault();
+      setIsCommandPaletteOpen((prev) => !prev);
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [booting, isBsod, isLocked]);
+
+  useEffect(() => {
+    if (!isCommandPaletteOpen) {
+      return;
+    }
+
+    setIsStartOpen(false);
+    setContextMenu((prev) => ({ ...prev, isOpen: false }));
+  }, [isCommandPaletteOpen]);
+
+  useEffect(() => {
+    const tickTheme = () => {
+      setThemeMode(resolveThemeMode());
+    };
+
+    const timer = window.setInterval(tickTheme, 60_000);
+    tickTheme();
+    return () => window.clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -241,9 +358,24 @@ function App() {
   };
 
   const updateIconPosition = (id, newPos) => {
-    setDesktopIcons(prev => prev.map(icon => 
-      icon.id === id ? { ...icon, position: newPos } : icon
-    ));
+    setDesktopIcons((prev) => {
+      const currentIndex = prev.findIndex((icon) => icon.id === id);
+
+      if (currentIndex < 0) {
+        return prev;
+      }
+
+      const { width, height } = getDesktopViewport();
+      const { columns, rows } = getGridBounds(width, height);
+      const cell = positionToGridCell(newPos, columns, rows);
+      const targetIndex = clamp((cell.col * rows) + cell.row, 0, prev.length - 1);
+
+      const reordered = [...prev];
+      const [draggedIcon] = reordered.splice(currentIndex, 1);
+      reordered.splice(targetIndex, 0, draggedIcon);
+
+      return arrangeIconsToGrid(reordered, width, height);
+    });
   };
 
   const dismissToast = (id) => {
@@ -430,15 +562,31 @@ function App() {
   const handleClick = () => {
     if (contextMenu.isOpen) setContextMenu({ ...contextMenu, isOpen: false });
     if (isStartOpen) setIsStartOpen(false);
+    if (isCommandPaletteOpen) setIsCommandPaletteOpen(false);
   };
 
   const handleSortIcons = () => {
     playSfx('click');
-    setDesktopIcons(prev => [...prev].sort((a, b) => a.name.localeCompare(b.name)));
+    const { width, height } = getDesktopViewport();
+    setDesktopIcons((prev) => arrangeIconsToGrid([...prev].sort((a, b) => a.name.localeCompare(b.name)), width, height));
     pushToast({
       tone: 'success',
       title: 'Desktop sorted',
-      description: 'Icons were organized alphabetically.',
+      description: 'Icons were organized alphabetically in a clean grid.',
+    });
+  };
+
+  const togglePresentationMode = () => {
+    setIsPresentationMode((prev) => {
+      const nextMode = !prev;
+      pushToast({
+        tone: 'info',
+        title: nextMode ? 'Presentation mode enabled' : 'Presentation mode disabled',
+        description: nextMode
+          ? 'Interface contrast and focus effects were increased for clean demos.'
+          : 'Workspace returned to the default visual style.',
+      });
+      return nextMode;
     });
   };
 
@@ -601,6 +749,59 @@ function App() {
     goToTourStep(tourIndex - 1);
   };
 
+  const commandActions = [
+    ...Object.entries(appConfigs).map(([appId, config]) => ({
+      id: `open-${appId}`,
+      label: `Open ${config.title}`,
+      subtitle: 'Launch or focus this app window.',
+      keywords: [appId, config.title.toLowerCase(), 'open', 'app'],
+      run: () => openOrFocusApp(appId),
+    })),
+    {
+      id: 'start-tour',
+      label: 'Start Recruiter Tour',
+      subtitle: 'Guide through about, resume, projects, research, and contact.',
+      keywords: ['tour', 'recruiter', 'guide'],
+      hint: 'Flow',
+      run: startRecruiterTour,
+    },
+    {
+      id: 'sort-icons',
+      label: 'Sort Desktop Icons',
+      subtitle: 'Arrange icons alphabetically.',
+      keywords: ['desktop', 'icons', 'sort', 'arrange'],
+      run: handleSortIcons,
+    },
+    {
+      id: 'toggle-presentation-mode',
+      label: isPresentationMode ? 'Disable Presentation Mode' : 'Enable Presentation Mode',
+      subtitle: 'Switch to a cleaner, high-contrast visual mode.',
+      keywords: ['presentation', 'mode', 'theme', 'focus'],
+      hint: 'Theme',
+      run: togglePresentationMode,
+    },
+    {
+      id: 'open-resume-pdf',
+      label: 'Open Resume PDF',
+      subtitle: 'Launch resume in an external browser tab.',
+      keywords: ['resume', 'pdf', 'external'],
+      run: () => openExternalResource('/Resume.pdf', 'Resume'),
+    },
+    {
+      id: 'lock-session',
+      label: 'Lock Session',
+      subtitle: 'Return to the sign-in screen.',
+      keywords: ['lock', 'session', 'signin'],
+      run: () => {
+        setWindows({});
+        setActiveWindow(null);
+        setIsStartOpen(false);
+        setContextMenu({ isOpen: false, x: 0, y: 0 });
+        setIsLocked(true);
+      },
+    },
+  ];
+
   if (booting) {
     return (
       <div className="bios-screen">
@@ -657,7 +858,15 @@ function App() {
   });
 
   return (
-    <div style={{ '--accent-color': accentColor, height: '100%', position: 'relative' }}>
+    <div
+      className={`desktop-root theme-${themeMode} ${isPresentationMode ? 'presentation-mode' : ''}`}
+      style={{
+        '--accent-color': accentColor,
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+      }}
+    >
       <div 
         className="desktop-bg" 
         style={getWallpaperStyle(wallpaper)}
@@ -673,7 +882,7 @@ function App() {
         <div className="desktop-icons-container">
           {desktopIcons.map((icon) => (
             <DesktopIcon 
-              key={icon.id}
+              key={`${icon.id}-${icon.position.x}-${icon.position.y}`}
               id={icon.id}
               name={icon.name}
               icon={icon.icon}
@@ -862,12 +1071,12 @@ function App() {
               </div>
             )}
             {win.type === 'terminal' && <TerminalApp onOpenApp={openApp} onStartTour={startRecruiterTour} />}
-            {win.type === 'music' && <MusicPlayer />}
+            {win.type === 'music' && <MusicPlayer onOpenExternal={openExternalResource} />}
             {win.type === 'browser' && <BrowserApp onOpenExternal={openExternalResource} />}
             {win.type === 'explorer' && <FileExplorer onPreviewFile={handleFilePreview} />}
             {win.type === 'resume' && <ResumeApp onOpenResume={openExternalResource} />}
             {win.type === 'researchlab' && <ResearchLabApp onOpenExternal={openExternalResource} />}
-            {win.type === 'livedemo' && <LiveDemoApp />}
+            {win.type === 'livedemo' && <LiveDemoApp onOpenExternal={openExternalResource} />}
             {win.type === 'experimenttracker' && <ExperimentTrackerApp />}
             {win.type === 'datasetexplorer' && <DatasetExplorerApp />}
             {win.type === 'modelmonitor' && <ModelMonitorApp />}
@@ -914,6 +1123,13 @@ function App() {
         />
         
         {isBsod && <BsodScreen onRestart={handleRestart} />}
+        {isCommandPaletteOpen && (
+          <CommandPalette
+            actions={commandActions}
+            onClose={() => setIsCommandPaletteOpen(false)}
+            onSelect={(action) => action.run?.()}
+          />
+        )}
         <TourGuide
           step={tourIndex != null ? recruiterTourSteps[tourIndex] : null}
           currentIndex={tourIndex ?? 0}

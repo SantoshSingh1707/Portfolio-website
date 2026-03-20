@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   User, GraduationCap, FolderDot, 
   Wrench, Mail, Settings, FileText,
-  LayoutGrid, Download, Terminal, Music, Globe, HardDrive
+  LayoutGrid, Download, Terminal, Music, Globe, HardDrive,
+  BookOpenText, FlaskConical, BarChart3, Database, Activity, Milestone, Trophy, Bot, Compass
 } from 'lucide-react';
 import Window from './components/Window';
 import Taskbar from './components/Taskbar';
@@ -23,6 +24,17 @@ import SystemModal from './components/SystemModal';
 import SystemToastStack from './components/SystemToastStack';
 import ResumeApp from './components/ResumeApp';
 import ProjectsApp from './components/ProjectsApp';
+import ResearchLabApp from './components/ResearchLabApp';
+import LiveDemoApp from './components/LiveDemoApp';
+import ExperimentTrackerApp from './components/ExperimentTrackerApp';
+import DatasetExplorerApp from './components/DatasetExplorerApp';
+import ModelMonitorApp from './components/ModelMonitorApp';
+import TimelineApp from './components/TimelineApp';
+import AchievementsApp from './components/AchievementsApp';
+import AIAssistantApp from './components/AIAssistantApp';
+import RecruiterTourApp from './components/RecruiterTourApp';
+import TourGuide from './components/TourGuide';
+import { recruiterTourSteps } from './data/portfolioSuiteData';
 import './App.css';
 
 // Pre-defined Wallpapers
@@ -88,6 +100,10 @@ const defaultDesktopIcons = [
   { id: 'music', name: 'Music', icon: Music, position: { x: 120, y: 320 } },
   { id: 'browser', name: 'Browser', icon: Globe, position: { x: 120, y: 420 } },
   { id: 'explorer', name: 'File Explorer', icon: HardDrive, position: { x: 220, y: 20 } },
+  { id: 'researchlab', name: 'Research Lab', icon: BookOpenText, position: { x: 220, y: 220 } },
+  { id: 'livedemo', name: 'Live Demo', icon: FlaskConical, position: { x: 220, y: 320 } },
+  { id: 'aiassistant', name: 'AI Assistant', icon: Bot, position: { x: 220, y: 420 } },
+  { id: 'recruitertour', name: 'Recruiter Tour', icon: Compass, position: { x: 320, y: 20 } },
 ];
 
 const desktopIconMap = Object.fromEntries(defaultDesktopIcons.map((icon) => [icon.id, icon]));
@@ -139,6 +155,7 @@ function App() {
   const [contextMenu, setContextMenu] = useState({ isOpen: false, x: 0, y: 0 });
   const [modal, setModal] = useState(null);
   const [toasts, setToasts] = useState([]);
+  const [tourIndex, setTourIndex] = useState(null);
 
   const runBootSequence = (isReboot = false) => {
     setBooting(true);
@@ -266,7 +283,16 @@ function App() {
     music: { title: 'Music Player', icon: Music },
     browser: { title: 'Web Browser', icon: Globe },
     explorer: { title: 'File Explorer', icon: HardDrive },
-    taskmanager: { title: 'Task Manager', icon: LayoutGrid }
+    taskmanager: { title: 'Task Manager', icon: LayoutGrid },
+    researchlab: { title: 'Research Lab', icon: BookOpenText },
+    livedemo: { title: 'Live Demo', icon: FlaskConical },
+    experimenttracker: { title: 'Experiment Tracker', icon: BarChart3 },
+    datasetexplorer: { title: 'Dataset Explorer', icon: Database },
+    modelmonitor: { title: 'Model Monitor', icon: Activity },
+    timeline: { title: 'Timeline', icon: Milestone },
+    achievements: { title: 'Achievements', icon: Trophy },
+    aiassistant: { title: 'AI Assistant', icon: Bot },
+    recruitertour: { title: 'Recruiter Tour', icon: Compass },
   };
 
   const openApp = (type) => {
@@ -354,6 +380,18 @@ function App() {
     }));
   };
 
+  const openOrFocusApp = (type) => {
+    const existingWindow = Object.entries(windows).find(([, windowConfig]) => windowConfig.type === type);
+
+    if (existingWindow) {
+      focusWindow(existingWindow[0]);
+      return existingWindow[0];
+    }
+
+    openApp(type);
+    return null;
+  };
+
   const minimizeWindow = (instanceId) => {
     setWindows(prev => ({
       ...prev,
@@ -432,6 +470,7 @@ function App() {
         { label: 'Build', value: '2026.03.20' },
         { label: 'Environment', value: 'React + Vite' },
         { label: 'Primary Focus', value: 'AI / ML Projects' },
+        { label: 'Lab Apps', value: '9 showcase windows' },
         { label: 'Mode', value: isMobile ? 'Mobile Touch' : 'Desktop Workspace' },
       ],
       actions: [{ label: 'Close', variant: 'primary' }],
@@ -515,6 +554,53 @@ function App() {
     });
   };
 
+  const finishRecruiterTour = () => {
+    setTourIndex(null);
+    pushToast({
+      tone: 'success',
+      title: 'Tour complete',
+      description: 'The recruiter walkthrough finished successfully.',
+    });
+  };
+
+  const startRecruiterTour = () => {
+    setTourIndex(0);
+    openOrFocusApp(recruiterTourSteps[0].id);
+    pushToast({
+      tone: 'info',
+      title: 'Recruiter tour started',
+      description: 'Use the floating guide to move through the strongest portfolio checkpoints.',
+    });
+  };
+
+  const goToTourStep = (nextIndex) => {
+    const nextStep = recruiterTourSteps[nextIndex];
+
+    if (!nextStep) {
+      finishRecruiterTour();
+      return;
+    }
+
+    setTourIndex(nextIndex);
+    openOrFocusApp(nextStep.id);
+  };
+
+  const handleNextTourStep = () => {
+    if (tourIndex == null) {
+      return;
+    }
+
+    goToTourStep(tourIndex + 1);
+  };
+
+  const handlePreviousTourStep = () => {
+    if (tourIndex == null || tourIndex === 0) {
+      return;
+    }
+
+    goToTourStep(tourIndex - 1);
+  };
+
   if (booting) {
     return (
       <div className="bios-screen">
@@ -558,7 +644,11 @@ function App() {
     zIndex: windows[instanceId].zIndex,
     initialIndex: windows[instanceId].launchIndex ?? 0,
     isActive: activeWindow === instanceId,
-    noPadding: ['browser', 'settings', 'music', 'explorer', 'taskmanager', 'terminal', 'notepad', 'resume'].includes(windows[instanceId].type),
+    noPadding: [
+      'browser', 'settings', 'music', 'explorer', 'taskmanager', 'terminal', 'notepad', 'resume',
+      'researchlab', 'livedemo', 'experimenttracker', 'datasetexplorer', 'modelmonitor',
+      'timeline', 'achievements', 'aiassistant', 'recruitertour',
+    ].includes(windows[instanceId].type),
     onClose: () => closeWindow(instanceId),
     onMinimize: () => minimizeWindow(instanceId),
     onFocus: () => focusWindow(instanceId),
@@ -771,11 +861,22 @@ function App() {
                 />
               </div>
             )}
-            {win.type === 'terminal' && <TerminalApp />}
+            {win.type === 'terminal' && <TerminalApp onOpenApp={openApp} onStartTour={startRecruiterTour} />}
             {win.type === 'music' && <MusicPlayer />}
             {win.type === 'browser' && <BrowserApp onOpenExternal={openExternalResource} />}
             {win.type === 'explorer' && <FileExplorer onPreviewFile={handleFilePreview} />}
             {win.type === 'resume' && <ResumeApp onOpenResume={openExternalResource} />}
+            {win.type === 'researchlab' && <ResearchLabApp onOpenExternal={openExternalResource} />}
+            {win.type === 'livedemo' && <LiveDemoApp />}
+            {win.type === 'experimenttracker' && <ExperimentTrackerApp />}
+            {win.type === 'datasetexplorer' && <DatasetExplorerApp />}
+            {win.type === 'modelmonitor' && <ModelMonitorApp />}
+            {win.type === 'timeline' && <TimelineApp />}
+            {win.type === 'achievements' && <AchievementsApp />}
+            {win.type === 'aiassistant' && <AIAssistantApp onOpenApp={openApp} />}
+            {win.type === 'recruitertour' && (
+              <RecruiterTourApp onStartTour={startRecruiterTour} onOpenApp={openOrFocusApp} steps={recruiterTourSteps} />
+            )}
             {win.type === 'taskmanager' && (
               <TaskManager 
                 windows={windows} 
@@ -800,7 +901,7 @@ function App() {
         )}
 
         {isStartOpen && (
-          <StartMenu onOpenApp={openApp} onShutdown={handleShutdownPrompt} />
+          <StartMenu onOpenApp={openApp} onShutdown={handleShutdownPrompt} onStartTour={startRecruiterTour} />
         )}
 
         <Taskbar 
@@ -813,6 +914,14 @@ function App() {
         />
         
         {isBsod && <BsodScreen onRestart={handleRestart} />}
+        <TourGuide
+          step={tourIndex != null ? recruiterTourSteps[tourIndex] : null}
+          currentIndex={tourIndex ?? 0}
+          totalSteps={recruiterTourSteps.length}
+          onNext={handleNextTourStep}
+          onPrevious={handlePreviousTourStep}
+          onClose={finishRecruiterTour}
+        />
         <SystemModal modal={modal} onClose={closeModal} />
         <SystemToastStack toasts={toasts} onDismiss={dismissToast} />
       </div>

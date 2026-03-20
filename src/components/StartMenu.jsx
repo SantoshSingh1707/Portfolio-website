@@ -14,9 +14,18 @@ import {
   LayoutGrid,
   Sparkles,
   ArrowRight,
+  BookOpenText,
+  FlaskConical,
+  BarChart3,
+  Database,
+  Activity,
+  Milestone,
+  Trophy,
+  Bot,
+  Compass,
 } from 'lucide-react';
 
-const StartMenu = ({ onOpenApp, onShutdown }) => {
+const StartMenu = ({ onOpenApp, onShutdown, onStartTour }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
   const pinnedApps = [
@@ -24,6 +33,15 @@ const StartMenu = ({ onOpenApp, onShutdown }) => {
     { id: 'projects', title: 'Projects', icon: FolderDot },
     { id: 'skills', title: 'Skills', icon: Wrench },
     { id: 'resume', title: 'Resume', icon: FileText },
+    { id: 'researchlab', title: 'Research Lab', icon: BookOpenText },
+    { id: 'livedemo', title: 'Live Demo', icon: FlaskConical },
+    { id: 'experimenttracker', title: 'Experiment Tracker', icon: BarChart3 },
+    { id: 'datasetexplorer', title: 'Dataset Explorer', icon: Database },
+    { id: 'modelmonitor', title: 'Model Monitor', icon: Activity },
+    { id: 'timeline', title: 'Timeline', icon: Milestone },
+    { id: 'achievements', title: 'Achievements', icon: Trophy },
+    { id: 'aiassistant', title: 'AI Assistant', icon: Bot },
+    { id: 'recruitertour', title: 'Recruiter Tour', icon: Compass },
     { id: 'notepad', title: 'Notepad', icon: FileText },
     { id: 'terminal', title: 'Terminal', icon: Terminal },
     { id: 'settings', title: 'Settings', icon: Settings },
@@ -52,10 +70,10 @@ const StartMenu = ({ onOpenApp, onShutdown }) => {
               <Sparkles size={14} />
               <span>Good to see you</span>
             </div>
-            <h3>Launch apps, explore projects, and tune the desktop.</h3>
+            <h3>Launch labs, demos, and recruiter-ready ML walkthroughs.</h3>
           </div>
-          <button type="button" className="start-hero-action" onClick={() => onOpenApp('browser')}>
-            Open Browser
+          <button type="button" className="start-hero-action" onClick={onStartTour}>
+            Start Tour
             <ArrowRight size={14} />
           </button>
         </div>
@@ -127,6 +145,27 @@ const StartMenu = ({ onOpenApp, onShutdown }) => {
               <div className="rec-text">
                 <span className="rec-title">Resume</span>
                 <span className="rec-desc">Preview the PDF and quick profile summary</span>
+              </div>
+            </button>
+            <button type="button" className="recommended-item" onClick={() => onOpenApp('researchlab')}>
+              <div className="rec-icon"><BookOpenText size={20} /></div>
+              <div className="rec-text">
+                <span className="rec-title">Research Lab</span>
+                <span className="rec-desc">Notes, themes, and current ML curiosity areas</span>
+              </div>
+            </button>
+            <button type="button" className="recommended-item" onClick={() => onOpenApp('aiassistant')}>
+              <div className="rec-icon"><Bot size={20} /></div>
+              <div className="rec-text">
+                <span className="rec-title">AI Assistant</span>
+                <span className="rec-desc">Ask the portfolio what to open and why</span>
+              </div>
+            </button>
+            <button type="button" className="recommended-item" onClick={onStartTour}>
+              <div className="rec-icon"><Compass size={20} /></div>
+              <div className="rec-text">
+                <span className="rec-title">Recruiter Tour</span>
+                <span className="rec-desc">Guided walkthrough of the strongest sections</span>
               </div>
             </button>
             <button type="button" className="recommended-item" onClick={() => onOpenApp('taskmanager')}>

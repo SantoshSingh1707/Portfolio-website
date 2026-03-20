@@ -1,8 +1,23 @@
 import React, { useEffect, useRef, useState } from 'react';
 
-const commandShortcuts = ['help', 'neofetch', 'projects', 'contact'];
+const commandShortcuts = ['help', 'projects', 'research', 'assistant', 'tour'];
 
-const TerminalApp = () => {
+const appCommandMap = {
+  projects: 'projects',
+  contact: 'contact',
+  resume: 'resume',
+  research: 'researchlab',
+  demo: 'livedemo',
+  tracker: 'experimenttracker',
+  dataset: 'datasetexplorer',
+  monitor: 'modelmonitor',
+  timeline: 'timeline',
+  achievements: 'achievements',
+  assistant: 'aiassistant',
+  tourapp: 'recruitertour',
+};
+
+const TerminalApp = ({ onOpenApp, onStartTour }) => {
   const [history, setHistory] = useState([
     'Santosh OS [Version 2.0.4]',
     '(c) 2026 Aithani Santosh Singh. All rights reserved.',
@@ -31,7 +46,7 @@ const TerminalApp = () => {
 
     switch (cmd) {
       case 'help':
-        response = 'Available commands: help, whoami, clear, echo, date, projects, contact, neofetch, matrix';
+        response = 'Available commands: help, whoami, clear, echo, date, projects, contact, resume, research, demo, tracker, dataset, monitor, timeline, achievements, assistant, tour, open <app>, neofetch, matrix';
         break;
       case 'neofetch':
         response = [
@@ -59,13 +74,65 @@ const TerminalApp = () => {
         break;
       case 'projects':
         response = 'Projects: AI Study Tool, Kidney Disease Classifier, Santosh Portfolio OS';
+        onOpenApp?.('projects');
         break;
       case 'contact':
         response = 'Email: santosh102969@gmail.com | GitHub: SantoshSingh1707 | LinkedIn: santosh-singh-a6ab972a0';
+        onOpenApp?.('contact');
+        break;
+      case 'resume':
+        response = 'Opening the Resume app.';
+        onOpenApp?.('resume');
+        break;
+      case 'research':
+        response = 'Opening the Research Lab.';
+        onOpenApp?.('researchlab');
+        break;
+      case 'demo':
+        response = 'Launching the Live Demo window.';
+        onOpenApp?.('livedemo');
+        break;
+      case 'tracker':
+        response = 'Opening the Experiment Tracker.';
+        onOpenApp?.('experimenttracker');
+        break;
+      case 'dataset':
+        response = 'Opening the Dataset Explorer.';
+        onOpenApp?.('datasetexplorer');
+        break;
+      case 'monitor':
+        response = 'Opening the Model Monitor.';
+        onOpenApp?.('modelmonitor');
+        break;
+      case 'timeline':
+        response = 'Opening the learning timeline.';
+        onOpenApp?.('timeline');
+        break;
+      case 'achievements':
+        response = 'Opening achievement highlights.';
+        onOpenApp?.('achievements');
+        break;
+      case 'assistant':
+        response = 'Opening the portfolio AI assistant.';
+        onOpenApp?.('aiassistant');
+        break;
+      case 'tour':
+        response = 'Starting the recruiter walkthrough.';
+        onStartTour?.();
         break;
       default:
         if (cmd.startsWith('echo ')) {
           response = command.substring(5);
+        } else if (cmd.startsWith('open ')) {
+          const target = cmd.slice(5).trim();
+          const appId = appCommandMap[target];
+
+          if (appId) {
+            response = `Opening ${target}...`;
+            onOpenApp?.(appId);
+          } else {
+            response = `No app alias found for '${target}'.`;
+          }
         } else {
           response = `'${cmd}' is not recognized as an internal or external command.`;
         }
